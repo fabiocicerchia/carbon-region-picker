@@ -1,0 +1,67 @@
+# carbon-region-picker
+
+[![CI](https://github.com/fabiocicerchia/carbon-region-picker/actions/workflows/ci.yml/badge.svg)](https://github.com/fabiocicerchia/carbon-region-picker/actions/workflows/ci.yml)
+[![Security](https://github.com/fabiocicerchia/carbon-region-picker/actions/workflows/security.yml/badge.svg)](https://github.com/fabiocicerchia/carbon-region-picker/actions/workflows/security.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/carbon-region-picker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/carbon-region-picker)
+
+Ranks cloud regions by **grid carbon intensity** under a **latency
+constraint**. The two numbers you actually trade off when picking a region,
+in one table.
+
+```console
+$ carbon-region-picker --near eu --max-latency-ms 60
+| rank | region | gCO2e/kWh | latency |
+|---|---|---|---|
+| 1 | eu-north-1 🌱 | 25  | 35ms |
+| 2 | eu-west-3 🌱  | 56  | 20ms |
+| 3 | eu-west-1     | 290 | 25ms |
+| 4 | eu-central-1  | 380 | 15ms |
+
+Picking `eu-north-1` over `eu-central-1` cuts compute carbon ~15x.
+```
+
+## Data
+
+- **Bundled** (default): yearly-average grid intensities per region zone —
+  conservative, documented in the source, fine for placement decisions.
+- **Live** (`--live --em-token …`): real-time intensity from the
+  [Electricity Maps](https://www.electricitymaps.com) API, for
+  carbon-aware scheduling of batch work.
+
+## Usage
+
+```sh
+pipx install .
+carbon-region-picker --near eu --max-latency-ms 60
+carbon-region-picker --live --em-token $EM_TOKEN --json   # feed schedulers
+```
+
+## Status & roadmap
+
+- [x] AWS region set, latency constraint, live Electricity Maps mode
+- [ ] GCP + Azure region sets
+- [ ] Real latency probes (`--measure` pings region endpoints from where
+      you run)
+- [ ] Marginal-intensity mode and 24h forecast ("run tonight at 02:00")
+
+## Documentation
+
+Full docs live in [`docs/`](docs/). Runnable examples live in [`examples/`](examples/).
+
+## Development
+
+`make setup` (once), then `make dev` and `make test` / `make lint`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+Found a vulnerability? See [SECURITY.md](SECURITY.md) — please don't open a public issue.
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE).
