@@ -29,6 +29,24 @@ REGIONS = {
         ("ap-southeast-2", "AU-NSW", 550, 280, 210),
         ("ap-south-1", "IN-WE", 650, 120, 200),
     ],
+    "gcp": [
+        ("europe-north1", "FI", 95, 30, 120),
+        ("europe-west1", "BE", 165, 15, 90),
+        ("us-central1", "US-MIDW-MISO", 430, 100, 35),
+        ("us-west1", "US-NW-PACW", 90, 140, 70),
+        ("asia-southeast1", "SG", 400, 160, 220),
+        ("australia-southeast1", "AU-NSW", 550, 280, 210),
+        ("asia-south1", "IN-WE", 650, 120, 200),
+    ],
+    "azure": [
+        ("northeurope", "IE", 290, 25, 80),
+        ("westeurope", "NL", 300, 20, 90),
+        ("eastus", "US-VA", 390, 90, 5),
+        ("westus2", "US-NW-PACW", 90, 135, 65),
+        ("southeastasia", "SG", 400, 160, 220),
+        ("australiaeast", "AU-NSW", 550, 280, 210),
+        ("centralindia", "IN-WE", 650, 120, 200),
+    ],
 }
 VANTAGE = {"eu": 3, "us-east": 4}
 

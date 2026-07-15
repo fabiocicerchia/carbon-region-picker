@@ -46,7 +46,16 @@ def test_render_mentions_savings_factor():
 def test_unknown_provider_rejected():
     """An unsupported --provider is rejected by argument parsing."""
     with pytest.raises(SystemExit):
-        main(["--provider", "gcp"])
+        main(["--provider", "oci"])
+
+
+def test_gcp_and_azure_region_sets():
+    """GCP and Azure rank like AWS: sorted by intensity, same record shape."""
+    for provider in ("gcp", "azure"):
+        rows = rank(provider=provider, near="eu")
+        assert rows
+        assert [r["gco2_kwh"] for r in rows] == sorted(r["gco2_kwh"] for r in rows)
+        assert {"region", "zone", "gco2_kwh", "latency_ms"} <= rows[0].keys()
 
 
 def test_missing_token_returns_error(monkeypatch):
