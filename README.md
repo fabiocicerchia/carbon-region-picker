@@ -63,7 +63,7 @@ carbon-region-picker --live --em-token $EM_TOKEN --json   # feed schedulers
 - [x] GCP + Azure region sets
 - [x] Real latency probes (`--measure` pings region endpoints from where
       you run)
-- [ ] Marginal-intensity mode and 24h forecast ("run tonight at 02:00")
+- [x] Marginal-intensity mode and 24h forecast ("run tonight at 02:00")
 
 ## Documentation
 

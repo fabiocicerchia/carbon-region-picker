@@ -114,14 +114,19 @@ def measure_all(provider: str) -> dict[str, float]:
     return out
 
 
-def fetch_live(zones: set[str], token: str) -> dict[str, float]:
-    """Query Electricity Maps for the current intensity of each zone."""
+def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str, float]:
+    """Query Electricity Maps for the current intensity of each zone.
+
+    `marginal=True` asks for the marginal rather than average grid intensity
+    (the rate the *next* unit of demand would be served at).
+    """
     import requests
 
+    path = "marginal-carbon-intensity" if marginal else "carbon-intensity"
     out = {}
     for zone in zones:
         r = requests.get(
-            "https://api.electricitymap.org/v3/carbon-intensity/latest",
+            f"https://api.electricitymap.org/v3/{path}/latest",
             params={"zone": zone},
             headers={"auth-token": token},
             timeout=15,
@@ -131,7 +136,34 @@ def fetch_live(zones: set[str], token: str) -> dict[str, float]:
     return out
 
 
-def render(rows: list[dict], near: str, max_latency_ms: int | None) -> str:
+def fetch_forecast(zone: str, token: str) -> list[dict]:
+    """Query Electricity Maps for the zone's 24h carbon-intensity forecast."""
+    import requests
+
+    r = requests.get(
+        "https://api.electricitymap.org/v3/carbon-intensity/forecast",
+        params={"zone": zone},
+        headers={"auth-token": token},
+        timeout=15,
+    )
+    if not r.ok:
+        return []
+    return r.json().get("forecast", [])
+
+
+def best_forecast_slot(forecast: list[dict]) -> dict | None:
+    """Return the forecast entry with the lowest intensity — e.g. tonight's cleanest hour."""
+    if not forecast:
+        return None
+    return min(forecast, key=lambda f: f["carbonIntensity"])
+
+
+def render(
+    rows: list[dict],
+    near: str,
+    max_latency_ms: int | None,
+    best_slot: dict | None = None,
+) -> str:
     """Render the ranked regions as a Markdown table with a savings footnote."""
     constraint = f" (≤{max_latency_ms}ms from {near})" if max_latency_ms else ""
     lines = [
@@ -149,6 +181,11 @@ def render(rows: list[dict], near: str, max_latency_ms: int | None) -> str:
             lines.append(
                 f"\nPicking `{best['region']}` over `{worst['region']}` cuts "
                 f"compute carbon ~{factor:.0f}x."
+            )
+        if best_slot:
+            lines.append(
+                f"\nCleanest hour in the next 24h for `{best['region']}`: "
+                f"{best_slot['datetime']} ({best_slot['carbonIntensity']} gCO2e/kWh)."
             )
     return "\n".join(lines)
 
@@ -173,6 +210,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
     p.add_argument(
+        "--marginal",
+        action="store_true",
+        help="use marginal instead of average grid intensity (requires --live)",
+    )
+    p.add_argument(
+        "--forecast",
+        action="store_true",
+        help="suggest the cleanest hour in the next 24h for the top region (requires --live)",
+    )
+    p.add_argument(
         "--em-token",
         help="Electricity Maps API token. Prefer the EM_TOKEN env var; a token "
         "passed here is visible in the process list.",
@@ -180,7 +227,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true")
     args = p.parse_args(argv)
 
+    if (args.marginal or args.forecast) and not args.live:
+        print("carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr)
+        return 64
+
     live = None
+    token = None
     if args.live:
         import os
 
@@ -188,14 +240,22 @@ def main(argv: list[str] | None = None) -> int:
         if not token:
             print("carbon-region-picker: --live needs --em-token or EM_TOKEN", file=sys.stderr)
             return 64
-        live = fetch_live({e[1] for e in REGIONS[args.provider]}, token)
+        live = fetch_live({e[1] for e in REGIONS[args.provider]}, token, marginal=args.marginal)
 
     measured = measure_all(args.provider) if args.measure else None
     rows = rank(args.provider, args.near, args.max_latency_ms, live, measured)
+
+    best_slot = None
+    if args.forecast and rows:
+        best_slot = best_forecast_slot(fetch_forecast(rows[0]["zone"], token))
+
     if args.json:
-        json.dump(rows, sys.stdout, indent=2)
+        out = {"regions": rows}
+        if best_slot:
+            out["best_forecast_slot"] = best_slot
+        json.dump(out if best_slot else rows, sys.stdout, indent=2)
     else:
-        print(render(rows, args.near, args.max_latency_ms))
+        print(render(rows, args.near, args.max_latency_ms, best_slot))
     return 0
 
 

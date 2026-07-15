@@ -5,7 +5,16 @@ import socket
 
 import pytest
 
-from carbon_region_picker import main, measure_all, measure_latency_ms, rank, render
+from carbon_region_picker import (
+    best_forecast_slot,
+    fetch_forecast,
+    fetch_live,
+    main,
+    measure_all,
+    measure_latency_ms,
+    rank,
+    render,
+)
 
 
 def test_rank_sorts_by_intensity():
@@ -93,6 +102,68 @@ def test_rank_uses_measured_latency_over_bundled():
     rows = rank(near="eu", measured_latencies={"eu-north-1": 999})
     en = next(r for r in rows if r["region"] == "eu-north-1")
     assert en["latency_ms"] == 999
+
+
+def test_best_forecast_slot_picks_lowest():
+    """The forecast slot with the lowest carbon intensity wins."""
+    forecast = [
+        {"datetime": "2026-07-15T22:00:00Z", "carbonIntensity": 120},
+        {"datetime": "2026-07-16T02:00:00Z", "carbonIntensity": 40},
+        {"datetime": "2026-07-16T06:00:00Z", "carbonIntensity": 90},
+    ]
+    assert best_forecast_slot(forecast)["datetime"] == "2026-07-16T02:00:00Z"
+
+
+def test_best_forecast_slot_empty():
+    """No forecast data means no suggested slot."""
+    assert best_forecast_slot([]) is None
+
+
+def test_fetch_live_marginal_hits_marginal_endpoint(monkeypatch):
+    """--marginal switches fetch_live to the marginal-intensity endpoint."""
+    calls = []
+
+    class FakeResp:
+        ok = True
+
+        def json(self):
+            return {"carbonIntensity": 42}
+
+    monkeypatch.setattr("requests.get", lambda url, **kw: calls.append(url) or FakeResp())
+    out = fetch_live({"SE"}, "tok", marginal=True)
+    assert out == {"SE": 42}
+    assert "marginal-carbon-intensity" in calls[0]
+
+
+def test_fetch_forecast_returns_list(monkeypatch):
+    """fetch_forecast unwraps the API's forecast array."""
+
+    class FakeResp:
+        ok = True
+
+        def json(self):
+            return {"forecast": [{"datetime": "x", "carbonIntensity": 1}]}
+
+    monkeypatch.setattr("requests.get", lambda url, **kw: FakeResp())
+    assert fetch_forecast("SE", "tok") == [{"datetime": "x", "carbonIntensity": 1}]
+
+
+def test_render_includes_forecast_note():
+    """render() appends the cleanest-hour suggestion when a best_slot is given."""
+    out = render(
+        rank(near="eu"), "eu", None, best_slot={"datetime": "02:00", "carbonIntensity": 10}
+    )
+    assert "Cleanest hour" in out and "02:00" in out
+
+
+def test_marginal_without_live_rejected():
+    """--marginal only makes sense with --live."""
+    assert main(["--marginal"]) == 64
+
+
+def test_forecast_without_live_rejected():
+    """--forecast only makes sense with --live."""
+    assert main(["--forecast"]) == 64
 
 
 def test_json_output_is_valid(capsys):
