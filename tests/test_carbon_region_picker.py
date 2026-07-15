@@ -1,10 +1,11 @@
 """Tests for the carbon-region-picker ranking, rendering, and CLI."""
 
 import json
+import socket
 
 import pytest
 
-from carbon_region_picker import main, rank, render
+from carbon_region_picker import main, measure_all, measure_latency_ms, rank, render
 
 
 def test_rank_sorts_by_intensity():
@@ -62,6 +63,36 @@ def test_missing_token_returns_error(monkeypatch):
     """--live without a token (flag or env) exits with a usage error."""
     monkeypatch.delenv("EM_TOKEN", raising=False)
     assert main(["--live"]) == 64
+
+
+def test_measure_latency_ms_success():
+    """A reachable TCP endpoint returns a non-negative round-trip time."""
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    host, port = srv.getsockname()
+    try:
+        ms = measure_latency_ms(host, port, timeout=1)
+        assert ms is not None and ms >= 0
+    finally:
+        srv.close()
+
+
+def test_measure_latency_ms_unreachable():
+    """A closed local port returns None instead of raising."""
+    assert measure_latency_ms("127.0.0.1", 1, timeout=0.5) is None
+
+
+def test_measure_all_unknown_provider_is_noop():
+    """Azure has no per-region endpoint convention, so --measure is a no-op for it."""
+    assert measure_all("azure") == {}
+
+
+def test_rank_uses_measured_latency_over_bundled():
+    """A measured latency for a region overrides its bundled estimate."""
+    rows = rank(near="eu", measured_latencies={"eu-north-1": 999})
+    en = next(r for r in rows if r["region"] == "eu-north-1")
+    assert en["latency_ms"] == 999
 
 
 def test_json_output_is_valid(capsys):

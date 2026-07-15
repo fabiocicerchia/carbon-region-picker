@@ -50,12 +50,21 @@ REGIONS = {
 }
 VANTAGE = {"eu": 3, "us-east": 4}
 
+# Per-region public hostnames used by --measure. Azure has no stable
+# per-region hostname without a resource name, so it's left out and
+# --measure keeps the bundled estimate for those rows.
+ENDPOINTS = {
+    "aws": lambda region: (f"ec2.{region}.amazonaws.com", 443),
+    "gcp": lambda region: (f"{region}-run.googleapis.com", 443),
+}
+
 
 def rank(
     provider: str = "aws",
     near: str = "eu",
     max_latency_ms: int | None = None,
     live_intensities: dict[str, float] | None = None,
+    measured_latencies: dict[str, float] | None = None,
 ) -> list[dict]:
     """Return regions sorted by carbon intensity, dropping any over the latency cap."""
     idx = VANTAGE.get(near, 3)
@@ -65,11 +74,44 @@ def rank(
         rtt = entry[idx]
         if live_intensities and zone in live_intensities:
             intensity = live_intensities[zone]
+        if measured_latencies and region in measured_latencies:
+            rtt = measured_latencies[region]
         if max_latency_ms and rtt > max_latency_ms:
             continue
-        rows.append({"region": region, "zone": zone, "gco2_kwh": intensity, "latency_ms": rtt})
+        rows.append(
+            {"region": region, "zone": zone, "gco2_kwh": intensity, "latency_ms": round(rtt, 1)}
+        )
     rows.sort(key=lambda r: r["gco2_kwh"])
     return rows
+
+
+def measure_latency_ms(host: str, port: int = 443, timeout: float = 2.0) -> float | None:
+    """TCP-connect timing to a region endpoint; None if it can't be reached."""
+    import socket
+    import time
+
+    start = time.perf_counter()
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            pass
+    except OSError:
+        return None
+    return (time.perf_counter() - start) * 1000
+
+
+def measure_all(provider: str) -> dict[str, float]:
+    """Measure real latency to every region's endpoint for a provider, where known."""
+    endpoint_for = ENDPOINTS.get(provider)
+    if not endpoint_for:
+        return {}
+    out = {}
+    for entry in REGIONS[provider]:
+        region = entry[0]
+        host, port = endpoint_for(region)
+        ms = measure_latency_ms(host, port)
+        if ms is not None:
+            out[region] = ms
+    return out
 
 
 def fetch_live(zones: set[str], token: str) -> dict[str, float]:
@@ -123,6 +165,12 @@ def main(argv: list[str] | None = None) -> int:
         "--near", default="eu", choices=sorted(VANTAGE.keys()), help="latency vantage point"
     )
     p.add_argument("--max-latency-ms", type=int)
+    p.add_argument(
+        "--measure",
+        action="store_true",
+        help="probe real TCP latency to each region's endpoint instead of the bundled "
+        "estimate (aws/gcp only)",
+    )
     p.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
     p.add_argument(
         "--em-token",
@@ -142,7 +190,8 @@ def main(argv: list[str] | None = None) -> int:
             return 64
         live = fetch_live({e[1] for e in REGIONS[args.provider]}, token)
 
-    rows = rank(args.provider, args.near, args.max_latency_ms, live)
+    measured = measure_all(args.provider) if args.measure else None
+    rows = rank(args.provider, args.near, args.max_latency_ms, live, measured)
     if args.json:
         json.dump(rows, sys.stdout, indent=2)
     else:
