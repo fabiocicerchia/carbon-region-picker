@@ -31,6 +31,24 @@ Picking `eu-north-1` over `eu-central-1` cuts compute carbon ~15x.
   [Electricity Maps](https://www.electricitymaps.com) API, for
   carbon-aware scheduling of batch work.
 
+## Install
+
+```sh
+pipx install git+https://github.com/fabiocicerchia/carbon-region-picker
+```
+
+Or with pip:
+
+```sh
+pip install git+https://github.com/fabiocicerchia/carbon-region-picker
+```
+
+Or the one-line installer:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/fabiocicerchia/carbon-region-picker/main/install.sh | bash
+```
+
 ## Usage
 
 ```sh
