@@ -57,14 +57,6 @@ carbon-region-picker --near eu --max-latency-ms 60
 carbon-region-picker --live --em-token $EM_TOKEN --json   # feed schedulers
 ```
 
-## Status & roadmap
-
-- [x] AWS region set, latency constraint, live Electricity Maps mode
-- [x] GCP + Azure region sets
-- [x] Real latency probes (`--measure` pings region endpoints from where
-      you run)
-- [x] Marginal-intensity mode and 24h forecast ("run tonight at 02:00")
-
 ## Documentation
 
 Full docs live in [`docs/`](docs/). Runnable examples live in [`examples/`](examples/).
