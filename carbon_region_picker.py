@@ -15,7 +15,16 @@ import sys
 
 # Bundled fallback dataset: yearly-average grid intensity (gCO2e/kWh) for the
 # grid zone each region sits in, and rough RTT from EU/US-East vantage points.
-# Sources: ElectricityMaps yearly summaries + public latency matrices.
+# Hand-transcribed, undated — treat as approximate. To refresh or verify a
+# zone code, use:
+#   - Zone-code registry (valid IDs the live API accepts):
+#     https://github.com/electricitymaps/electricitymaps-contrib/tree/master/config/zones
+#   - Country-level yearly averages (free, versioned CSV):
+#     https://files.ember-energy.org/public-downloads/yearly_full_release_long_format.csv
+#   - Sub-national zones Ember doesn't cover (US balancing authorities, CA-QC,
+#     IN-WE, AU-NSW): https://app.electricitymaps.com/zone/<ZONE> (no static
+#     dataset at this granularity without a paid API token — check by hand).
+# Latency: rough public latency matrices, also undated.
 REGIONS = {
     "aws": [
         # region, zone, gCO2/kWh, rtt_eu_ms, rtt_use_ms
@@ -24,7 +33,12 @@ REGIONS = {
         ("ca-central-1", "CA-QC", 30, 95, 25),
         ("eu-central-1", "DE", 380, 15, 95),
         ("eu-west-1", "IE", 290, 25, 80),
-        ("us-east-1", "US-VA", 390, 90, 5),
+        ("us-east-1", "US-MIDA-PJM", 390, 90, 5),
+        # ponytail: "US-OR" is not a real EM zone code (see registry above) —
+        # Boardman/Umatilla OR is likely US-NW-BPAT or US-NW-PACW depending on
+        # the exact substation, but left unverified rather than guessed.
+        # --live silently falls back to this bundled value for this region
+        # until the correct zone is confirmed and swapped in.
         ("us-west-2", "US-OR", 120, 140, 70),
         ("ap-southeast-2", "AU-NSW", 550, 280, 210),
         ("ap-south-1", "IN-WE", 650, 120, 200),
@@ -41,7 +55,7 @@ REGIONS = {
     "azure": [
         ("northeurope", "IE", 290, 25, 80),
         ("westeurope", "NL", 300, 20, 90),
-        ("eastus", "US-VA", 390, 90, 5),
+        ("eastus", "US-MIDA-PJM", 390, 90, 5),
         ("westus2", "US-NW-PACW", 90, 135, 65),
         ("southeastasia", "SG", 400, 160, 220),
         ("australiaeast", "AU-NSW", 550, 280, 210),
