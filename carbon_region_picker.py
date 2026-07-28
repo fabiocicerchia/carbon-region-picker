@@ -129,41 +129,38 @@ def measure_all(provider: str) -> dict[str, float]:
     return out
 
 
+def _em_get(path: str, zone: str, token: str) -> dict | None:
+    """GET an Electricity Maps `/v3/<path>/latest`-or-`/forecast`-style endpoint for a zone."""
+    import requests
+
+    r = requests.get(
+        f"https://api.electricitymap.org/v3/{path}",
+        params={"zone": zone},
+        headers={"auth-token": token},
+        timeout=15,
+    )
+    return r.json() if r.ok else None
+
+
 def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str, float]:
     """Query Electricity Maps for the current intensity of each zone.
 
     `marginal=True` asks for the marginal rather than average grid intensity
     (the rate the *next* unit of demand would be served at).
     """
-    import requests
-
-    path = "marginal-carbon-intensity" if marginal else "carbon-intensity"
+    path = "marginal-carbon-intensity/latest" if marginal else "carbon-intensity/latest"
     out = {}
     for zone in zones:
-        r = requests.get(
-            f"https://api.electricitymap.org/v3/{path}/latest",
-            params={"zone": zone},
-            headers={"auth-token": token},
-            timeout=15,
-        )
-        if r.ok:
-            out[zone] = r.json().get("carbonIntensity")
+        data = _em_get(path, zone, token)
+        if data is not None:
+            out[zone] = data.get("carbonIntensity")
     return out
 
 
 def fetch_forecast(zone: str, token: str) -> list[dict]:
     """Query Electricity Maps for the zone's 24h carbon-intensity forecast."""
-    import requests
-
-    r = requests.get(
-        "https://api.electricitymap.org/v3/carbon-intensity/forecast",
-        params={"zone": zone},
-        headers={"auth-token": token},
-        timeout=15,
-    )
-    if not r.ok:
-        return []
-    return r.json().get("forecast", [])
+    data = _em_get("carbon-intensity/forecast", zone, token)
+    return data.get("forecast", []) if data else []
 
 
 def best_forecast_slot(forecast: list[dict]) -> dict | None:
