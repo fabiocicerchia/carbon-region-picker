@@ -62,7 +62,7 @@ REGIONS = {
         ("centralindia", "IN-WE", 650, 120, 200),
     ],
 }
-VANTAGE = {"eu": 3, "us-east": 4}
+VANTAGE = {"eu": 0, "us-east": 1}  # index into the rtt_* tail of a REGIONS entry
 
 # Per-region public hostnames used by --measure. Azure has no stable
 # per-region hostname without a resource name, so it's left out and
@@ -81,19 +81,20 @@ def rank(
     measured_latencies: dict[str, float] | None = None,
 ) -> list[dict]:
     """Return regions sorted by carbon intensity, dropping any over the latency cap."""
-    idx = VANTAGE.get(near, 3)
+    idx = VANTAGE.get(near, 0)
     rows = []
     for entry in REGIONS[provider]:
-        region, zone, intensity, *rtts = entry
-        rtt = entry[idx]
+        region, zone, base_intensity, *rtts = entry
+        gco2_kwh = float(base_intensity)
+        rtt = float(rtts[idx])
         if live_intensities and zone in live_intensities:
-            intensity = live_intensities[zone]
+            gco2_kwh = live_intensities[zone]
         if measured_latencies and region in measured_latencies:
             rtt = measured_latencies[region]
         if max_latency_ms and rtt > max_latency_ms:
             continue
         rows.append(
-            {"region": region, "zone": zone, "gco2_kwh": intensity, "latency_ms": round(rtt, 1)}
+            {"region": region, "zone": zone, "gco2_kwh": gco2_kwh, "latency_ms": round(rtt, 1)}
         )
     rows.sort(key=lambda r: r["gco2_kwh"])
     return rows
@@ -261,10 +262,13 @@ def main(argv: list[str] | None = None) -> int:
 
     best_slot = None
     if args.forecast and rows:
+        # Guaranteed set: the early-return above requires --live (and a token)
+        # whenever --forecast is passed.
+        assert token is not None
         best_slot = best_forecast_slot(fetch_forecast(rows[0]["zone"], token))
 
     if args.json:
-        out = {"regions": rows}
+        out: dict[str, object] = {"regions": rows}
         if best_slot:
             out["best_forecast_slot"] = best_slot
         json.dump(out if best_slot else rows, sys.stdout, indent=2)
