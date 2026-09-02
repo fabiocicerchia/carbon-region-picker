@@ -10,6 +10,7 @@ conservative). With --live it queries Electricity Maps for real-time data.
 """
 
 import argparse
+import dataclasses
 import json
 import sys
 
@@ -77,13 +78,23 @@ ENDPOINTS = {
 }
 
 
+@dataclasses.dataclass(frozen=True)
+class RankedRegion:
+    """One row of the ranking. Field order is the JSON key order."""
+
+    region: str
+    zone: str
+    gco2_kwh: float
+    latency_ms: float
+
+
 def rank(
     provider: str = "aws",
     near: str = "eu",
     max_latency_ms: int | None = None,
     live_intensities: dict[str, float] | None = None,
     measured_latencies: dict[str, float] | None = None,
-) -> list[dict]:
+) -> list[RankedRegion]:
     """Return regions sorted by carbon intensity, dropping any over the latency cap."""
     rtt_index = VANTAGE.get(near, 0)
     rows = []
@@ -97,10 +108,8 @@ def rank(
             rtt = measured_latencies[region]
         if max_latency_ms and rtt > max_latency_ms:
             continue
-        rows.append(
-            {"region": region, "zone": zone, "gco2_kwh": gco2_kwh, "latency_ms": round(rtt, 1)}
-        )
-    rows.sort(key=lambda row: row["gco2_kwh"])
+        rows.append(RankedRegion(region, zone, gco2_kwh, round(rtt, 1)))
+    rows.sort(key=lambda row: row.gco2_kwh)
     return rows
 
 
@@ -175,7 +184,7 @@ def best_forecast_slot(forecast: list[dict]) -> dict | None:
 
 
 def render(
-    rows: list[dict],
+    rows: list[RankedRegion],
     near: str,
     max_latency_ms: int | None,
     best_slot: dict | None = None,
@@ -188,21 +197,19 @@ def render(
         "|---|---|---|---|",
     ]
     for i, row in enumerate(rows, 1):
-        marker = " 🌱" if row["gco2_kwh"] < CLEAN_GRID_GCO2_KWH else ""
-        lines.append(
-            f"| {i} | {row['region']}{marker} | {row['gco2_kwh']} | {row['latency_ms']}ms |"
-        )
+        marker = " 🌱" if row.gco2_kwh < CLEAN_GRID_GCO2_KWH else ""
+        lines.append(f"| {i} | {row.region}{marker} | {row.gco2_kwh} | {row.latency_ms}ms |")
     if rows:
         best, worst = rows[0], rows[-1]
-        if worst["gco2_kwh"] > best["gco2_kwh"]:
-            factor = worst["gco2_kwh"] / max(best["gco2_kwh"], 1)
+        if worst.gco2_kwh > best.gco2_kwh:
+            factor = worst.gco2_kwh / max(best.gco2_kwh, 1)
             lines.append(
-                f"\nPicking `{best['region']}` over `{worst['region']}` cuts "
+                f"\nPicking `{best.region}` over `{worst.region}` cuts "
                 f"compute carbon ~{factor:.0f}x."
             )
         if best_slot:
             lines.append(
-                f"\nCleanest hour in the next 24h for `{best['region']}`: "
+                f"\nCleanest hour in the next 24h for `{best.region}`: "
                 f"{best_slot['datetime']} ({best_slot['carbonIntensity']} gCO2e/kWh)."
             )
     return "\n".join(lines)
@@ -253,13 +260,14 @@ def resolve_token(args: argparse.Namespace) -> str | None:
     return args.em_token or os.environ.get("EM_TOKEN")
 
 
-def emit(rows: list[dict], best_slot: dict | None, args: argparse.Namespace) -> None:
+def emit(rows: list[RankedRegion], best_slot: dict | None, args: argparse.Namespace) -> None:
     """Write the ranking to stdout, as JSON or as the Markdown table."""
     if args.json:
-        out: dict[str, object] = {"regions": rows}
+        records = [dataclasses.asdict(row) for row in rows]
+        out: dict[str, object] = {"regions": records}
         if best_slot:
             out["best_forecast_slot"] = best_slot
-        json.dump(out if best_slot else rows, sys.stdout, indent=2)
+        json.dump(out if best_slot else records, sys.stdout, indent=2)
     else:
         print(render(rows, args.near, args.max_latency_ms, best_slot))
 
@@ -289,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
         # Guaranteed set: the early-return above requires --live (and a token)
         # whenever --forecast is passed.
         assert token is not None
-        best_slot = best_forecast_slot(fetch_forecast(rows[0]["zone"], token))
+        best_slot = best_forecast_slot(fetch_forecast(rows[0].zone, token))
 
     emit(rows, best_slot, args)
     return 0
