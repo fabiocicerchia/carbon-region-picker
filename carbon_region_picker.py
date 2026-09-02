@@ -15,6 +15,9 @@ import json
 import sys
 
 HTTPS_PORT = 443
+# The tool's only self-detected failure: sysexits EX_USAGE for a flag
+# combination it refuses. argparse keeps its own exit code 2 for bad input.
+EXIT_USAGE = 64
 # Below this a grid counts as clean and the region gets the 🌱 marker.
 CLEAN_GRID_GCO2_KWH = 100
 
@@ -278,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if (args.marginal or args.forecast) and not args.live:
         print("carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr)
-        return 64
+        return EXIT_USAGE
 
     live = None
     token = None
@@ -286,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
         token = resolve_token(args)
         if not token:
             print("carbon-region-picker: --live needs --em-token or EM_TOKEN", file=sys.stderr)
-            return 64
+            return EXIT_USAGE
         live = fetch_live({e[1] for e in REGIONS[args.provider]}, token, marginal=args.marginal)
 
     measured = measure_all(args.provider) if args.measure else None
