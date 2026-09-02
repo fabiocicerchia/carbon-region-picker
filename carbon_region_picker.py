@@ -13,6 +13,10 @@ import argparse
 import json
 import sys
 
+HTTPS_PORT = 443
+# Below this a grid counts as clean and the region gets the 🌱 marker.
+CLEAN_GRID_GCO2_KWH = 100
+
 # Bundled fallback dataset: yearly-average grid intensity (gCO2e/kWh) for the
 # grid zone each region sits in, and rough RTT from EU/US-East vantage points.
 # Hand-transcribed, undated — treat as approximate. To refresh or verify a
@@ -68,8 +72,8 @@ VANTAGE = {"eu": 0, "us-east": 1}  # index into the rtt_* tail of a REGIONS entr
 # per-region hostname without a resource name, so it's left out and
 # --measure keeps the bundled estimate for those rows.
 ENDPOINTS = {
-    "aws": lambda region: (f"ec2.{region}.amazonaws.com", 443),
-    "gcp": lambda region: (f"{region}-run.googleapis.com", 443),
+    "aws": lambda region: (f"ec2.{region}.amazonaws.com", HTTPS_PORT),
+    "gcp": lambda region: (f"{region}-run.googleapis.com", HTTPS_PORT),
 }
 
 
@@ -100,7 +104,7 @@ def rank(
     return rows
 
 
-def measure_latency_ms(host: str, port: int = 443, timeout: float = 2.0) -> float | None:
+def measure_latency_ms(host: str, port: int = HTTPS_PORT, timeout: float = 2.0) -> float | None:
     """TCP-connect timing to a region endpoint; None if it can't be reached."""
     import socket
     import time
@@ -184,7 +188,7 @@ def render(
         "|---|---|---|---|",
     ]
     for i, r in enumerate(rows, 1):
-        marker = " 🌱" if r["gco2_kwh"] < 100 else ""
+        marker = " 🌱" if r["gco2_kwh"] < CLEAN_GRID_GCO2_KWH else ""
         lines.append(f"| {i} | {r['region']}{marker} | {r['gco2_kwh']} | {r['latency_ms']}ms |")
     if rows:
         best, worst = rows[0], rows[-1]
