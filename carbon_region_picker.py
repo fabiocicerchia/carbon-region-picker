@@ -85,12 +85,12 @@ def rank(
     measured_latencies: dict[str, float] | None = None,
 ) -> list[dict]:
     """Return regions sorted by carbon intensity, dropping any over the latency cap."""
-    idx = VANTAGE.get(near, 0)
+    rtt_index = VANTAGE.get(near, 0)
     rows = []
     for entry in REGIONS[provider]:
         region, zone, base_intensity, *rtts = entry
         gco2_kwh = float(base_intensity)
-        rtt = float(rtts[idx])
+        rtt = float(rtts[rtt_index])
         if live_intensities and zone in live_intensities:
             gco2_kwh = live_intensities[zone]
         if measured_latencies and region in measured_latencies:
@@ -100,7 +100,7 @@ def rank(
         rows.append(
             {"region": region, "zone": zone, "gco2_kwh": gco2_kwh, "latency_ms": round(rtt, 1)}
         )
-    rows.sort(key=lambda r: r["gco2_kwh"])
+    rows.sort(key=lambda row: row["gco2_kwh"])
     return rows
 
 
@@ -123,27 +123,27 @@ def measure_all(provider: str) -> dict[str, float]:
     endpoint_for = ENDPOINTS.get(provider)
     if not endpoint_for:
         return {}
-    out = {}
+    latencies = {}
     for entry in REGIONS[provider]:
         region = entry[0]
         host, port = endpoint_for(region)
         ms = measure_latency_ms(host, port)
         if ms is not None:
-            out[region] = ms
-    return out
+            latencies[region] = ms
+    return latencies
 
 
 def _em_get(path: str, zone: str, token: str) -> dict | None:
     """GET an Electricity Maps `/v3/<path>/latest`-or-`/forecast`-style endpoint for a zone."""
     import requests
 
-    r = requests.get(
+    response = requests.get(
         f"https://api.electricitymap.org/v3/{path}",
         params={"zone": zone},
         headers={"auth-token": token},
         timeout=15,
     )
-    return r.json() if r.ok else None
+    return response.json() if response.ok else None
 
 
 def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str, float]:
@@ -153,25 +153,25 @@ def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str,
     (the rate the *next* unit of demand would be served at).
     """
     path = "marginal-carbon-intensity/latest" if marginal else "carbon-intensity/latest"
-    out = {}
+    intensities = {}
     for zone in zones:
-        data = _em_get(path, zone, token)
-        if data is not None:
-            out[zone] = data.get("carbonIntensity")
-    return out
+        latest = _em_get(path, zone, token)
+        if latest is not None:
+            intensities[zone] = latest.get("carbonIntensity")
+    return intensities
 
 
 def fetch_forecast(zone: str, token: str) -> list[dict]:
     """Query Electricity Maps for the zone's 24h carbon-intensity forecast."""
-    data = _em_get("carbon-intensity/forecast", zone, token)
-    return data.get("forecast", []) if data else []
+    payload = _em_get("carbon-intensity/forecast", zone, token)
+    return payload.get("forecast", []) if payload else []
 
 
 def best_forecast_slot(forecast: list[dict]) -> dict | None:
     """Return the forecast entry with the lowest intensity — e.g. tonight's cleanest hour."""
     if not forecast:
         return None
-    return min(forecast, key=lambda f: f["carbonIntensity"])
+    return min(forecast, key=lambda slot: slot["carbonIntensity"])
 
 
 def render(
@@ -187,9 +187,11 @@ def render(
         "| rank | region | gCO2e/kWh | latency |",
         "|---|---|---|---|",
     ]
-    for i, r in enumerate(rows, 1):
-        marker = " 🌱" if r["gco2_kwh"] < CLEAN_GRID_GCO2_KWH else ""
-        lines.append(f"| {i} | {r['region']}{marker} | {r['gco2_kwh']} | {r['latency_ms']}ms |")
+    for i, row in enumerate(rows, 1):
+        marker = " 🌱" if row["gco2_kwh"] < CLEAN_GRID_GCO2_KWH else ""
+        lines.append(
+            f"| {i} | {row['region']}{marker} | {row['gco2_kwh']} | {row['latency_ms']}ms |"
+        )
     if rows:
         best, worst = rows[0], rows[-1]
         if worst["gco2_kwh"] > best["gco2_kwh"]:
@@ -208,40 +210,40 @@ def render(
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point: parse args, optionally fetch live data, print the ranking."""
-    p = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         prog="carbon-region-picker",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--provider", default="aws", choices=sorted(REGIONS.keys()))
-    p.add_argument(
+    parser.add_argument("--provider", default="aws", choices=sorted(REGIONS.keys()))
+    parser.add_argument(
         "--near", default="eu", choices=sorted(VANTAGE.keys()), help="latency vantage point"
     )
-    p.add_argument("--max-latency-ms", type=int)
-    p.add_argument(
+    parser.add_argument("--max-latency-ms", type=int)
+    parser.add_argument(
         "--measure",
         action="store_true",
         help="probe real TCP latency to each region's endpoint instead of the bundled "
         "estimate (aws/gcp only)",
     )
-    p.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
-    p.add_argument(
+    parser.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
+    parser.add_argument(
         "--marginal",
         action="store_true",
         help="use marginal instead of average grid intensity (requires --live)",
     )
-    p.add_argument(
+    parser.add_argument(
         "--forecast",
         action="store_true",
         help="suggest the cleanest hour in the next 24h for the top region (requires --live)",
     )
-    p.add_argument(
+    parser.add_argument(
         "--em-token",
         help="Electricity Maps API token. Prefer the EM_TOKEN env var; a token "
         "passed here is visible in the process list.",
     )
-    p.add_argument("--json", action="store_true")
-    args = p.parse_args(argv)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
 
     if (args.marginal or args.forecast) and not args.live:
         print("carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr)
