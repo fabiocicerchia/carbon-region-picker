@@ -208,8 +208,8 @@ def render(
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:
-    """CLI entry point: parse args, optionally fetch live data, print the ranking."""
+def build_parser() -> argparse.ArgumentParser:
+    """Declare the command line. Kept apart so main() reads as a list of steps."""
     parser = argparse.ArgumentParser(
         prog="carbon-region-picker",
         description=__doc__,
@@ -243,7 +243,30 @@ def main(argv: list[str] | None = None) -> int:
         "passed here is visible in the process list.",
     )
     parser.add_argument("--json", action="store_true")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def resolve_token(args: argparse.Namespace) -> str | None:
+    """The Electricity Maps token: --em-token first, else the EM_TOKEN env var."""
+    import os
+
+    return args.em_token or os.environ.get("EM_TOKEN")
+
+
+def emit(rows: list[dict], best_slot: dict | None, args: argparse.Namespace) -> None:
+    """Write the ranking to stdout, as JSON or as the Markdown table."""
+    if args.json:
+        out: dict[str, object] = {"regions": rows}
+        if best_slot:
+            out["best_forecast_slot"] = best_slot
+        json.dump(out if best_slot else rows, sys.stdout, indent=2)
+    else:
+        print(render(rows, args.near, args.max_latency_ms, best_slot))
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: parse args, optionally fetch live data, print the ranking."""
+    args = build_parser().parse_args(argv)
 
     if (args.marginal or args.forecast) and not args.live:
         print("carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr)
@@ -252,9 +275,7 @@ def main(argv: list[str] | None = None) -> int:
     live = None
     token = None
     if args.live:
-        import os
-
-        token = args.em_token or os.environ.get("EM_TOKEN")
+        token = resolve_token(args)
         if not token:
             print("carbon-region-picker: --live needs --em-token or EM_TOKEN", file=sys.stderr)
             return 64
@@ -270,13 +291,7 @@ def main(argv: list[str] | None = None) -> int:
         assert token is not None
         best_slot = best_forecast_slot(fetch_forecast(rows[0]["zone"], token))
 
-    if args.json:
-        out: dict[str, object] = {"regions": rows}
-        if best_slot:
-            out["best_forecast_slot"] = best_slot
-        json.dump(out if best_slot else rows, sys.stdout, indent=2)
-    else:
-        print(render(rows, args.near, args.max_latency_ms, best_slot))
+    emit(rows, best_slot, args)
     return 0
 
 
