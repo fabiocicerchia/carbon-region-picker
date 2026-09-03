@@ -1,0 +1,16 @@
+{
+  "components": {
+    "carbon_region_picker": {
+      "fan_in": 0,
+      "fan_out": 0,
+      "modules": 1
+    }
+  },
+  "cycles": [],
+  "edges": [],
+  "external": [
+    "requests"
+  ],
+  "version": "2.0",
+  "violations": []
+}

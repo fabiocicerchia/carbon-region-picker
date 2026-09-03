@@ -10,8 +10,16 @@ conservative). With --live it queries Electricity Maps for real-time data.
 """
 
 import argparse
+import dataclasses
 import json
 import sys
+
+HTTPS_PORT = 443
+# The tool's only self-detected failure: sysexits EX_USAGE for a flag
+# combination it refuses. argparse keeps its own exit code 2 for bad input.
+EXIT_USAGE = 64
+# Below this a grid counts as clean and the region gets the 🌱 marker.
+CLEAN_GRID_GCO2_KWH = 100
 
 # Bundled fallback dataset: yearly-average grid intensity (gCO2e/kWh) for the
 # grid zone each region sits in, and rough RTT from EU/US-East vantage points.
@@ -68,9 +76,19 @@ VANTAGE = {"eu": 0, "us-east": 1}  # index into the rtt_* tail of a REGIONS entr
 # per-region hostname without a resource name, so it's left out and
 # --measure keeps the bundled estimate for those rows.
 ENDPOINTS = {
-    "aws": lambda region: (f"ec2.{region}.amazonaws.com", 443),
-    "gcp": lambda region: (f"{region}-run.googleapis.com", 443),
+    "aws": lambda region: (f"ec2.{region}.amazonaws.com", HTTPS_PORT),
+    "gcp": lambda region: (f"{region}-run.googleapis.com", HTTPS_PORT),
 }
+
+
+@dataclasses.dataclass(frozen=True)
+class RankedRegion:
+    """One row of the ranking. Field order is the JSON key order."""
+
+    region: str
+    zone: str
+    gco2_kwh: float
+    latency_ms: float
 
 
 def rank(
@@ -79,28 +97,26 @@ def rank(
     max_latency_ms: int | None = None,
     live_intensities: dict[str, float] | None = None,
     measured_latencies: dict[str, float] | None = None,
-) -> list[dict]:
+) -> list[RankedRegion]:
     """Return regions sorted by carbon intensity, dropping any over the latency cap."""
-    idx = VANTAGE.get(near, 0)
+    rtt_index = VANTAGE.get(near, 0)
     rows = []
     for entry in REGIONS[provider]:
         region, zone, base_intensity, *rtts = entry
         gco2_kwh = float(base_intensity)
-        rtt = float(rtts[idx])
+        rtt = float(rtts[rtt_index])
         if live_intensities and zone in live_intensities:
             gco2_kwh = live_intensities[zone]
         if measured_latencies and region in measured_latencies:
             rtt = measured_latencies[region]
         if max_latency_ms and rtt > max_latency_ms:
             continue
-        rows.append(
-            {"region": region, "zone": zone, "gco2_kwh": gco2_kwh, "latency_ms": round(rtt, 1)}
-        )
-    rows.sort(key=lambda r: r["gco2_kwh"])
+        rows.append(RankedRegion(region, zone, gco2_kwh, round(rtt, 1)))
+    rows.sort(key=lambda row: row.gco2_kwh)
     return rows
 
 
-def measure_latency_ms(host: str, port: int = 443, timeout: float = 2.0) -> float | None:
+def measure_latency_ms(host: str, port: int = HTTPS_PORT, timeout: float = 2.0) -> float | None:
     """TCP-connect timing to a region endpoint; None if it can't be reached."""
     import socket
     import time
@@ -119,27 +135,27 @@ def measure_all(provider: str) -> dict[str, float]:
     endpoint_for = ENDPOINTS.get(provider)
     if not endpoint_for:
         return {}
-    out = {}
+    latencies = {}
     for entry in REGIONS[provider]:
         region = entry[0]
         host, port = endpoint_for(region)
         ms = measure_latency_ms(host, port)
         if ms is not None:
-            out[region] = ms
-    return out
+            latencies[region] = ms
+    return latencies
 
 
 def _em_get(path: str, zone: str, token: str) -> dict | None:
     """GET an Electricity Maps `/v3/<path>/latest`-or-`/forecast`-style endpoint for a zone."""
     import requests
 
-    r = requests.get(
+    response = requests.get(
         f"https://api.electricitymap.org/v3/{path}",
         params={"zone": zone},
         headers={"auth-token": token},
         timeout=15,
     )
-    return r.json() if r.ok else None
+    return response.json() if response.ok else None
 
 
 def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str, float]:
@@ -149,29 +165,29 @@ def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str,
     (the rate the *next* unit of demand would be served at).
     """
     path = "marginal-carbon-intensity/latest" if marginal else "carbon-intensity/latest"
-    out = {}
+    intensities = {}
     for zone in zones:
-        data = _em_get(path, zone, token)
-        if data is not None:
-            out[zone] = data.get("carbonIntensity")
-    return out
+        latest = _em_get(path, zone, token)
+        if latest is not None:
+            intensities[zone] = latest.get("carbonIntensity")
+    return intensities
 
 
 def fetch_forecast(zone: str, token: str) -> list[dict]:
     """Query Electricity Maps for the zone's 24h carbon-intensity forecast."""
-    data = _em_get("carbon-intensity/forecast", zone, token)
-    return data.get("forecast", []) if data else []
+    payload = _em_get("carbon-intensity/forecast", zone, token)
+    return payload.get("forecast", []) if payload else []
 
 
 def best_forecast_slot(forecast: list[dict]) -> dict | None:
     """Return the forecast entry with the lowest intensity — e.g. tonight's cleanest hour."""
     if not forecast:
         return None
-    return min(forecast, key=lambda f: f["carbonIntensity"])
+    return min(forecast, key=lambda slot: slot["carbonIntensity"])
 
 
 def render(
-    rows: list[dict],
+    rows: list[RankedRegion],
     near: str,
     max_latency_ms: int | None,
     best_slot: dict | None = None,
@@ -183,75 +199,97 @@ def render(
         "| rank | region | gCO2e/kWh | latency |",
         "|---|---|---|---|",
     ]
-    for i, r in enumerate(rows, 1):
-        marker = " 🌱" if r["gco2_kwh"] < 100 else ""
-        lines.append(f"| {i} | {r['region']}{marker} | {r['gco2_kwh']} | {r['latency_ms']}ms |")
+    for i, row in enumerate(rows, 1):
+        marker = " 🌱" if row.gco2_kwh < CLEAN_GRID_GCO2_KWH else ""
+        lines.append(f"| {i} | {row.region}{marker} | {row.gco2_kwh} | {row.latency_ms}ms |")
     if rows:
         best, worst = rows[0], rows[-1]
-        if worst["gco2_kwh"] > best["gco2_kwh"]:
-            factor = worst["gco2_kwh"] / max(best["gco2_kwh"], 1)
+        if worst.gco2_kwh > best.gco2_kwh:
+            factor = worst.gco2_kwh / max(best.gco2_kwh, 1)
             lines.append(
-                f"\nPicking `{best['region']}` over `{worst['region']}` cuts "
+                f"\nPicking `{best.region}` over `{worst.region}` cuts "
                 f"compute carbon ~{factor:.0f}x."
             )
         if best_slot:
             lines.append(
-                f"\nCleanest hour in the next 24h for `{best['region']}`: "
+                f"\nCleanest hour in the next 24h for `{best.region}`: "
                 f"{best_slot['datetime']} ({best_slot['carbonIntensity']} gCO2e/kWh)."
             )
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:
-    """CLI entry point: parse args, optionally fetch live data, print the ranking."""
-    p = argparse.ArgumentParser(
+def build_parser() -> argparse.ArgumentParser:
+    """Declare the command line. Kept apart so main() reads as a list of steps."""
+    parser = argparse.ArgumentParser(
         prog="carbon-region-picker",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--provider", default="aws", choices=sorted(REGIONS.keys()))
-    p.add_argument(
+    parser.add_argument("--provider", default="aws", choices=sorted(REGIONS.keys()))
+    parser.add_argument(
         "--near", default="eu", choices=sorted(VANTAGE.keys()), help="latency vantage point"
     )
-    p.add_argument("--max-latency-ms", type=int)
-    p.add_argument(
+    parser.add_argument("--max-latency-ms", type=int)
+    parser.add_argument(
         "--measure",
         action="store_true",
         help="probe real TCP latency to each region's endpoint instead of the bundled "
         "estimate (aws/gcp only)",
     )
-    p.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
-    p.add_argument(
+    parser.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
+    parser.add_argument(
         "--marginal",
         action="store_true",
         help="use marginal instead of average grid intensity (requires --live)",
     )
-    p.add_argument(
+    parser.add_argument(
         "--forecast",
         action="store_true",
         help="suggest the cleanest hour in the next 24h for the top region (requires --live)",
     )
-    p.add_argument(
+    parser.add_argument(
         "--em-token",
         help="Electricity Maps API token. Prefer the EM_TOKEN env var; a token "
         "passed here is visible in the process list.",
     )
-    p.add_argument("--json", action="store_true")
-    args = p.parse_args(argv)
+    parser.add_argument("--json", action="store_true")
+    return parser
+
+
+def resolve_token(args: argparse.Namespace) -> str | None:
+    """The Electricity Maps token: --em-token first, else the EM_TOKEN env var."""
+    import os
+
+    return args.em_token or os.environ.get("EM_TOKEN")
+
+
+def emit(rows: list[RankedRegion], best_slot: dict | None, args: argparse.Namespace) -> None:
+    """Write the ranking to stdout, as JSON or as the Markdown table."""
+    if args.json:
+        records = [dataclasses.asdict(row) for row in rows]
+        out: dict[str, object] = {"regions": records}
+        if best_slot:
+            out["best_forecast_slot"] = best_slot
+        json.dump(out if best_slot else records, sys.stdout, indent=2)
+    else:
+        print(render(rows, args.near, args.max_latency_ms, best_slot))
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: parse args, optionally fetch live data, print the ranking."""
+    args = build_parser().parse_args(argv)
 
     if (args.marginal or args.forecast) and not args.live:
         print("carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr)
-        return 64
+        return EXIT_USAGE
 
     live = None
     token = None
     if args.live:
-        import os
-
-        token = args.em_token or os.environ.get("EM_TOKEN")
+        token = resolve_token(args)
         if not token:
             print("carbon-region-picker: --live needs --em-token or EM_TOKEN", file=sys.stderr)
-            return 64
+            return EXIT_USAGE
         live = fetch_live({e[1] for e in REGIONS[args.provider]}, token, marginal=args.marginal)
 
     measured = measure_all(args.provider) if args.measure else None
@@ -262,15 +300,9 @@ def main(argv: list[str] | None = None) -> int:
         # Guaranteed set: the early-return above requires --live (and a token)
         # whenever --forecast is passed.
         assert token is not None
-        best_slot = best_forecast_slot(fetch_forecast(rows[0]["zone"], token))
+        best_slot = best_forecast_slot(fetch_forecast(rows[0].zone, token))
 
-    if args.json:
-        out: dict[str, object] = {"regions": rows}
-        if best_slot:
-            out["best_forecast_slot"] = best_slot
-        json.dump(out if best_slot else rows, sys.stdout, indent=2)
-    else:
-        print(render(rows, args.near, args.max_latency_ms, best_slot))
+    emit(rows, best_slot, args)
     return 0
 
 

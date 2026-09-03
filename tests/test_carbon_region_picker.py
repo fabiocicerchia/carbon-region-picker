@@ -2,6 +2,7 @@
 
 import json
 import socket
+from dataclasses import fields
 
 import pytest
 
@@ -20,24 +21,24 @@ from carbon_region_picker import (
 def test_rank_sorts_by_intensity():
     """Regions come back ordered from cleanest to dirtiest grid."""
     rows = rank(near="eu")
-    intensities = [r["gco2_kwh"] for r in rows]
+    intensities = [r.gco2_kwh for r in rows]
     assert intensities == sorted(intensities)
-    assert rows[0]["region"] == "eu-north-1"
+    assert rows[0].region == "eu-north-1"
 
 
 def test_latency_constraint_filters():
     """A latency cap drops regions beyond it while keeping those within."""
     rows = rank(near="eu", max_latency_ms=40)
-    assert all(r["latency_ms"] <= 40 for r in rows)
-    assert any(r["region"] == "eu-central-1" for r in rows)
-    assert not any(r["region"] == "us-east-1" for r in rows)
+    assert all(r.latency_ms <= 40 for r in rows)
+    assert any(r.region == "eu-central-1" for r in rows)
+    assert not any(r.region == "us-east-1" for r in rows)
 
 
 def test_live_overrides_bundled_values():
     """A live intensity for a zone replaces its bundled value."""
     rows = rank(near="eu", live_intensities={"DE": 90})
-    de = next(r for r in rows if r["zone"] == "DE")
-    assert de["gco2_kwh"] == 90
+    de = next(r for r in rows if r.zone == "DE")
+    assert de.gco2_kwh == 90
 
 
 def test_live_ignores_unknown_zone():
@@ -64,8 +65,8 @@ def test_gcp_and_azure_region_sets():
     for provider in ("gcp", "azure"):
         rows = rank(provider=provider, near="eu")
         assert rows
-        assert [r["gco2_kwh"] for r in rows] == sorted(r["gco2_kwh"] for r in rows)
-        assert {"region", "zone", "gco2_kwh", "latency_ms"} <= rows[0].keys()
+        assert [r.gco2_kwh for r in rows] == sorted(r.gco2_kwh for r in rows)
+        assert {f.name for f in fields(rows[0])} == {"region", "zone", "gco2_kwh", "latency_ms"}
 
 
 def test_missing_token_returns_error(monkeypatch):
@@ -100,8 +101,8 @@ def test_measure_all_unknown_provider_is_noop():
 def test_rank_uses_measured_latency_over_bundled():
     """A measured latency for a region overrides its bundled estimate."""
     rows = rank(near="eu", measured_latencies={"eu-north-1": 999})
-    en = next(r for r in rows if r["region"] == "eu-north-1")
-    assert en["latency_ms"] == 999
+    en = next(r for r in rows if r.region == "eu-north-1")
+    assert en.latency_ms == 999
 
 
 def test_best_forecast_slot_picks_lowest():

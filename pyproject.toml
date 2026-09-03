@@ -37,3 +37,6 @@ py-modules = ["carbon_region_picker"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

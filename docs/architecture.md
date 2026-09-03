@@ -15,13 +15,19 @@ latency, and prints a table (or JSON).
 - **Vantage points** (`VANTAGE`) — approximate latency from a `--near` origin
   to each region.
 - **Ranking** — sort by intensity, apply the `--max-latency-ms` constraint.
+  `rank()` returns `RankedRegion` records (region, zone, gco2_kwh,
+  latency_ms); the field order is the `--json` key order.
 - **Live source** — with `--live`, intensities come from the Electricity Maps
   API instead of the bundled table.
 
 ## Data flow
 
-`main()` parses args → selects provider/vantage → resolves intensities
-(bundled or live) → filters by latency → sorts → renders table or JSON.
+`build_parser()` declares the CLI → `main()` validates the flag combination →
+resolves intensities (bundled, or live via `fetch_live`) → `rank()` filters by
+latency and sorts → `emit()` writes the Markdown table or the JSON.
+
+A machine-derived map of the same tree lives in `ARCHITECTURE.md` at the
+repository root; regenerate it with `automap map`.
 
 ## Decisions
 
