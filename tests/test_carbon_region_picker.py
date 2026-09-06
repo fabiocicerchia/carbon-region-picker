@@ -114,7 +114,9 @@ def test_best_forecast_slot_picks_lowest() -> None:
         {"datetime": "2026-07-16T02:00:00Z", "carbonIntensity": 40},
         {"datetime": "2026-07-16T06:00:00Z", "carbonIntensity": 90},
     ]
-    assert best_forecast_slot(forecast)["datetime"] == "2026-07-16T02:00:00Z"
+    slot = best_forecast_slot(forecast)
+    assert slot is not None
+    assert slot["datetime"] == "2026-07-16T02:00:00Z"
 
 
 def test_best_forecast_slot_empty() -> None:
@@ -124,7 +126,7 @@ def test_best_forecast_slot_empty() -> None:
 
 def test_fetch_live_marginal_hits_marginal_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     """--marginal switches fetch_live to the marginal-intensity endpoint."""
-    calls = []
+    calls: list[str] = []
 
     class FakeResp:
         ok = True
@@ -132,7 +134,11 @@ def test_fetch_live_marginal_hits_marginal_endpoint(monkeypatch: pytest.MonkeyPa
         def json(self) -> dict[str, int]:
             return {"carbonIntensity": 42}
 
-    monkeypatch.setattr("requests.get", lambda url, **kw: calls.append(url) or FakeResp())
+    def fake_get(url: str, **_kwargs: object) -> FakeResp:
+        calls.append(url)
+        return FakeResp()
+
+    monkeypatch.setattr("requests.get", fake_get)
     out = fetch_live({"SE"}, "tok", marginal=True)
     assert out == {"SE": 42}
     assert "marginal-carbon-intensity" in calls[0]
@@ -147,7 +153,10 @@ def test_fetch_forecast_returns_list(monkeypatch: pytest.MonkeyPatch) -> None:
         def json(self) -> dict[str, list[dict[str, object]]]:
             return {"forecast": [{"datetime": "x", "carbonIntensity": 1}]}
 
-    monkeypatch.setattr("requests.get", lambda url, **kw: FakeResp())
+    def fake_get(_url: str, **_kwargs: object) -> FakeResp:
+        return FakeResp()
+
+    monkeypatch.setattr("requests.get", fake_get)
     assert fetch_forecast("SE", "tok") == [{"datetime": "x", "carbonIntensity": 1}]
 
 
