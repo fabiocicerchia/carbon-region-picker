@@ -12,7 +12,10 @@ conservative). With --live it queries Electricity Maps for real-time data.
 import argparse
 import dataclasses
 import json
+import os
+import socket
 import sys
+import time
 
 HTTPS_PORT = 443
 # The tool's only self-detected failure: sysexits EX_USAGE for a flag
@@ -118,9 +121,6 @@ def rank(
 
 def measure_latency_ms(host: str, port: int = HTTPS_PORT, timeout: float = 2.0) -> float | None:
     """TCP-connect timing to a region endpoint; None if it can't be reached."""
-    import socket
-    import time
-
     start = time.perf_counter()
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -147,7 +147,9 @@ def measure_all(provider: str) -> dict[str, float]:
 
 def _em_get(path: str, zone: str, token: str) -> dict | None:
     """GET an Electricity Maps `/v3/<path>/latest`-or-`/forecast`-style endpoint for a zone."""
-    import requests
+    # Not at the top: --live is opt-in, and the bundled-data path must work on
+    # a machine that has never installed requests.
+    import requests  # noqa: PLC0415
 
     response = requests.get(
         f"https://api.electricitymap.org/v3/{path}",
@@ -206,10 +208,7 @@ def render(
         best, worst = rows[0], rows[-1]
         if worst.gco2_kwh > best.gco2_kwh:
             factor = worst.gco2_kwh / max(best.gco2_kwh, 1)
-            lines.append(
-                f"\nPicking `{best.region}` over `{worst.region}` cuts "
-                f"compute carbon ~{factor:.0f}x."
-            )
+            lines.append(f"\nPicking `{best.region}` over `{worst.region}` cuts compute carbon ~{factor:.0f}x.")
         if best_slot:
             lines.append(
                 f"\nCleanest hour in the next 24h for `{best.region}`: "
@@ -226,15 +225,12 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--provider", default="aws", choices=sorted(REGIONS.keys()))
-    parser.add_argument(
-        "--near", default="eu", choices=sorted(VANTAGE.keys()), help="latency vantage point"
-    )
+    parser.add_argument("--near", default="eu", choices=sorted(VANTAGE.keys()), help="latency vantage point")
     parser.add_argument("--max-latency-ms", type=int)
     parser.add_argument(
         "--measure",
         action="store_true",
-        help="probe real TCP latency to each region's endpoint instead of the bundled "
-        "estimate (aws/gcp only)",
+        help="probe real TCP latency to each region's endpoint instead of the bundled estimate (aws/gcp only)",
     )
     parser.add_argument("--live", action="store_true", help="use Electricity Maps real-time data")
     parser.add_argument(
@@ -258,8 +254,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def resolve_token(args: argparse.Namespace) -> str | None:
     """The Electricity Maps token: --em-token first, else the EM_TOKEN env var."""
-    import os
-
     return args.em_token or os.environ.get("EM_TOKEN")
 
 
@@ -272,7 +266,8 @@ def emit(rows: list[RankedRegion], best_slot: dict | None, args: argparse.Namesp
             out["best_forecast_slot"] = best_slot
         json.dump(out if best_slot else records, sys.stdout, indent=2)
     else:
-        print(render(rows, args.near, args.max_latency_ms, best_slot))
+        # This function is the command line, and this is its result.
+        print(render(rows, args.near, args.max_latency_ms, best_slot))  # noqa: T201
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -280,7 +275,9 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
     if (args.marginal or args.forecast) and not args.live:
-        print("carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr)
+        print(  # noqa: T201 — a usage error, on stderr where it belongs
+            "carbon-region-picker: --marginal/--forecast require --live", file=sys.stderr
+        )
         return EXIT_USAGE
 
     live = None
@@ -288,7 +285,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.live:
         token = resolve_token(args)
         if not token:
-            print("carbon-region-picker: --live needs --em-token or EM_TOKEN", file=sys.stderr)
+            print(  # noqa: T201 — a usage error, on stderr where it belongs
+                "carbon-region-picker: --live needs --em-token or EM_TOKEN", file=sys.stderr
+            )
             return EXIT_USAGE
         live = fetch_live({e[1] for e in REGIONS[args.provider]}, token, marginal=args.marginal)
 
@@ -297,9 +296,12 @@ def main(argv: list[str] | None = None) -> int:
 
     best_slot = None
     if args.forecast and rows:
-        # Guaranteed set: the early-return above requires --live (and a token)
-        # whenever --forecast is passed.
-        assert token is not None
+        # The early return above requires --live and a token whenever --forecast
+        # is passed, so this cannot fire -- but `assert` is stripped under -O,
+        # and a guard that disappears under a flag is not a guard.
+        if token is None:  # pragma: no cover
+            msg = "--forecast reached the fetch without a token"
+            raise RuntimeError(msg)
         best_slot = best_forecast_slot(fetch_forecast(rows[0].zone, token))
 
     emit(rows, best_slot, args)
