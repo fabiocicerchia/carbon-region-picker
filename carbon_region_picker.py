@@ -16,6 +16,8 @@ import os
 import socket
 import sys
 import time
+from collections.abc import Callable
+from typing import Any
 
 HTTPS_PORT = 443
 # The tool's only self-detected failure: sysexits EX_USAGE for a flag
@@ -78,7 +80,7 @@ VANTAGE = {"eu": 0, "us-east": 1}  # index into the rtt_* tail of a REGIONS entr
 # Per-region public hostnames used by --measure. Azure has no stable
 # per-region hostname without a resource name, so it's left out and
 # --measure keeps the bundled estimate for those rows.
-ENDPOINTS = {
+ENDPOINTS: dict[str, Callable[[str], tuple[str, int]]] = {
     "aws": lambda region: (f"ec2.{region}.amazonaws.com", HTTPS_PORT),
     "gcp": lambda region: (f"{region}-run.googleapis.com", HTTPS_PORT),
 }
@@ -103,7 +105,7 @@ def rank(
 ) -> list[RankedRegion]:
     """Return regions sorted by carbon intensity, dropping any over the latency cap."""
     rtt_index = VANTAGE.get(near, 0)
-    rows = []
+    rows: list[RankedRegion] = []
     for entry in REGIONS[provider]:
         region, zone, base_intensity, *rtts = entry
         gco2_kwh = float(base_intensity)
@@ -135,7 +137,7 @@ def measure_all(provider: str) -> dict[str, float]:
     endpoint_for = ENDPOINTS.get(provider)
     if not endpoint_for:
         return {}
-    latencies = {}
+    latencies: dict[str, float] = {}
     for entry in REGIONS[provider]:
         region = entry[0]
         host, port = endpoint_for(region)
@@ -145,7 +147,7 @@ def measure_all(provider: str) -> dict[str, float]:
     return latencies
 
 
-def _em_get(path: str, zone: str, token: str) -> dict | None:
+def _em_get(path: str, zone: str, token: str) -> dict[str, Any] | None:
     """GET an Electricity Maps `/v3/<path>/latest`-or-`/forecast`-style endpoint for a zone."""
     # Not at the top: --live is opt-in, and the bundled-data path must work on
     # a machine that has never installed requests.
@@ -167,21 +169,25 @@ def fetch_live(zones: set[str], token: str, marginal: bool = False) -> dict[str,
     (the rate the *next* unit of demand would be served at).
     """
     path = "marginal-carbon-intensity/latest" if marginal else "carbon-intensity/latest"
-    intensities = {}
+    intensities: dict[str, float] = {}
     for zone in zones:
         latest = _em_get(path, zone, token)
         if latest is not None:
-            intensities[zone] = latest.get("carbonIntensity")
+            # A response with no intensity is a zone the API knows and has
+            # no number for, which is not a row this tool can rank.
+            intensity = latest.get("carbonIntensity")
+            if intensity is not None:
+                intensities[zone] = float(intensity)
     return intensities
 
 
-def fetch_forecast(zone: str, token: str) -> list[dict]:
+def fetch_forecast(zone: str, token: str) -> list[dict[str, Any]]:
     """Query Electricity Maps for the zone's 24h carbon-intensity forecast."""
     payload = _em_get("carbon-intensity/forecast", zone, token)
     return payload.get("forecast", []) if payload else []
 
 
-def best_forecast_slot(forecast: list[dict]) -> dict | None:
+def best_forecast_slot(forecast: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Return the forecast entry with the lowest intensity — e.g. tonight's cleanest hour."""
     if not forecast:
         return None
@@ -192,7 +198,7 @@ def render(
     rows: list[RankedRegion],
     near: str,
     max_latency_ms: int | None,
-    best_slot: dict | None = None,
+    best_slot: dict[str, Any] | None = None,
 ) -> str:
     """Render the ranked regions as a Markdown table with a savings footnote."""
     constraint = f" (≤{max_latency_ms}ms from {near})" if max_latency_ms else ""
@@ -257,7 +263,7 @@ def resolve_token(args: argparse.Namespace) -> str | None:
     return args.em_token or os.environ.get("EM_TOKEN")
 
 
-def emit(rows: list[RankedRegion], best_slot: dict | None, args: argparse.Namespace) -> None:
+def emit(rows: list[RankedRegion], best_slot: dict[str, Any] | None, args: argparse.Namespace) -> None:
     """Write the ranking to stdout, as JSON or as the Markdown table."""
     if args.json:
         records = [dataclasses.asdict(row) for row in rows]
