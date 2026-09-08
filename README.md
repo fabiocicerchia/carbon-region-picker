@@ -13,12 +13,12 @@ in one table.
 
 ```console
 $ carbon-region-picker --near eu --max-latency-ms 60
-| rank | region | gCO2e/kWh | latency |
-|---|---|---|---|
-| 1 | eu-north-1 🌱 | 25  | 35ms |
-| 2 | eu-west-3 🌱  | 56  | 20ms |
-| 3 | eu-west-1     | 290 | 25ms |
-| 4 | eu-central-1  | 380 | 15ms |
+| rank | region       | gCO2e/kWh | latency |
+| ---- | ------------ | --------- | ------- |
+| 1    | eu-north-1 🌱 | 25        | 35ms    |
+| 2    | eu-west-3 🌱  | 56        | 20ms    |
+| 3    | eu-west-1    | 290       | 25ms    |
+| 4    | eu-central-1 | 380       | 15ms    |
 
 Picking `eu-north-1` over `eu-central-1` cuts compute carbon ~15x.
 ```
