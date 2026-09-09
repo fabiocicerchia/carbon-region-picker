@@ -1,0 +1,68 @@
+.TH CARBON\-REGION\-PICKER 1 "2026-09" "carbon-region-picker" "User Commands"
+.SH NAME
+carbon-region-picker \- rank cloud regions by grid carbon intensity, under a latency constraint
+.SH SYNOPSIS
+.B carbon-region-picker
+.RI [ options ]
+.SH DESCRIPTION
+Ranks a cloud provider's regions by the carbon intensity of their
+electricity grid, subject to a latency budget from a chosen vantage point \(em
+so the answer is a region you can actually deploy to, not merely a clean one.
+.SH OPTIONS
+.TP
+.BI \-\-provider " NAME"
+Cloud provider (default aws).
+.TP
+.BI \-\-near " VANTAGE"
+Latency vantage point (default eu).
+.TP
+.BI \-\-max\-latency\-ms " MS"
+Reject regions slower than this.
+.TP
+.B \-\-measure
+Probe real TCP latency to each region's endpoint instead of using the
+bundled estimate. AWS and GCP only.
+.TP
+.B \-\-live
+Use Electricity Maps real-time data instead of bundled averages.
+.TP
+.B \-\-marginal
+Use marginal rather than average grid intensity. Requires
+.BR \-\-live .
+.TP
+.B \-\-forecast
+Suggest the cleanest hour in the next 24 for the top region. Requires
+.BR \-\-live .
+.TP
+.BI \-\-em\-token " TOKEN"
+Electricity Maps API token. Prefer the
+.I EM_TOKEN
+environment variable: a token passed here is visible in the process list.
+.TP
+.B \-\-json
+Machine-readable output.
+.SH EXIT STATUS
+.TP
+.B 0
+A ranking was produced.
+.TP
+.B non-zero
+No region met the constraints, or the data source failed.
+.SH EXAMPLES
+.PP
+Cleanest European region within 60 ms:
+.PP
+.RS
+.B carbon-region-picker \-\-provider aws \-\-near eu \-\-max\-latency\-ms 60
+.RE
+.PP
+Against live grid data:
+.PP
+.RS
+.B carbon-region-picker \-\-provider aws \-\-live
+.RE
+.SH SEE ALSO
+.BR carbon-badge (1).
+Project documentation:
+.UR https://github.com/fabiocicerchia/carbon-region-picker
+.UE
