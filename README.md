@@ -23,6 +23,21 @@ $ carbon-region-picker --near eu --max-latency-ms 60
 Picking `eu-north-1` over `eu-central-1` cuts compute carbon ~15x.
 ```
 
+## Features
+
+- Ranks cloud regions by **grid carbon intensity under a latency constraint** —
+  the two numbers you actually trade off, in one table.
+- Bundled yearly-average intensities by default: conservative, documented in
+  the source, and enough for a placement decision with no API key.
+- `--live --em-token …` swaps in real-time intensity from
+  [Electricity Maps](https://www.electricitymaps.com), for carbon-aware
+  scheduling of batch work.
+- `--near` and `--max-latency-ms` filter to regions you can actually serve
+  from, so the greenest answer is also a usable one.
+- `--json` output feeds schedulers directly.
+- Surfaces the size of the prize in the result — regional choice alone
+  routinely moves compute carbon by an order of magnitude.
+
 ## Data
 
 - **Bundled** (default): yearly-average grid intensities per region zone —
