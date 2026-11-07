@@ -3,7 +3,7 @@ Feature: Constraining regions by latency
   Serves engineers with latency budgets, by dropping regions too far from where their users are.
 
   Background:
-    Given Given the bundled round-trip estimates are in use
+    Giventhe bundled round-trip estimates are in use
 
   @id:latency.latency-cap.001 @rule:latency.latency-cap.drop-over-cap @verified @source:carbon_region_picker.py#rank @test:tests/test_carbon_region_picker.py#test_latency_constraint_filters
   Scenario Outline: Regions slower than the cap from the chosen vantage point are dropped

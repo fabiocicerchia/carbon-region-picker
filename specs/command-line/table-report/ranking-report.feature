@@ -3,8 +3,8 @@ Feature: Reading the ranking report
   Serves engineers reading the default Markdown output, which shows the constraint, flags clean grids and estimates the carbon saving.
 
   Background:
-    Given Given the bundled yearly-average grid intensities are in use
-    And And the output format is the default table
+    Given the bundled yearly-average grid intensities are in use
+    Andthe output format is the default table
 
   @id:command-line.table-report.001 @rule:command-line.table-report.constraint-heading @inferred @source:carbon_region_picker.py#render
   Scenario Outline: The heading states the latency constraint when one is set
@@ -40,7 +40,7 @@ Feature: Reading the ranking report
     Examples:
       | provider | best          | worst        | factor |
       | aws      | eu-north-1    | ap-south-1   | 26     |
-      | gcp      | europe-north1 | asia-south1  | 7      |
+      | gcp      | us-west1      | asia-south1  | 7      |
       | azure    | westus2       | centralindia | 7      |
 
   @id:command-line.table-report.004 @rule:region-ranking.savings-estimate.omitted-without-difference @inferred @source:carbon_region_picker.py#render

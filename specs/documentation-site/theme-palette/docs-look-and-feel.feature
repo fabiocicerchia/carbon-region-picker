@@ -9,7 +9,7 @@ Feature: Presenting the documentation in the project's own palette
   Scenario: The docs use the green GreenOps accent pair
     Given the theme's accent pair is #34d399 and #059669
     When a reader opens any documentation page
-    Then the header, tabs and links on a light background are shown in #059669
+    Then links on the light scheme are shown in #059669
     And links on the dark scheme are shown in #34d399 on a #0b0f1a ground
     And primary buttons and the home-page title use a gradient from #34d399 to #059669
 

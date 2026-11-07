@@ -3,8 +3,8 @@ Feature: Ranking on live grid intensity
   Serves engineers who want today's grid rather than a yearly average, by pulling current intensities from Electricity Maps.
 
   Background:
-    Given Given the operator has a valid Electricity Maps token
-    And And asks for live data
+    Given the operator has a valid Electricity Maps token
+    Andasks for live data
 
   @id:live-grid-data.real-time-intensity.001 @rule:live-grid-data.real-time-intensity.live-replaces-bundled @verified @source:carbon_region_picker.py#rank @test:tests/test_carbon_region_picker.py#test_live_overrides_bundled_values
   Scenario: A zone's live intensity replaces its bundled average in the ranking
