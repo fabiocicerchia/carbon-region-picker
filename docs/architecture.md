@@ -19,6 +19,10 @@ latency, and prints a table (or JSON).
   latency_ms); the field order is the `--json` key order.
 - **Live source** — with `--live`, intensities come from the Electricity Maps
   API instead of the bundled table.
+- **Scorecard** — `scripts/generate_scorecard.py`, outside the package: joins
+  `data/regions-map.json` with Ember's yearly grid intensity and writes
+  `data/regions-carbon-score.json` and `docs/scorecard.md`. Country-level, so
+  it rates far more regions than `REGIONS` ranks, at coarser grain.
 
 ## Data flow
 

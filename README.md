@@ -45,6 +45,11 @@ Picking `eu-north-1` over `eu-central-1` cuts compute carbon ~15x.
 - **Live** (`--live --em-token …`): real-time intensity from the
   [Electricity Maps](https://www.electricitymaps.com) API, for
   carbon-aware scheduling of batch work.
+- **Scorecard** ([`docs/scorecard.md`](docs/scorecard.md)): 239 regions across
+  nine providers rated A-F by their country's yearly grid intensity, from
+  [Ember](https://ember-energy.org/data/yearly-electricity-data/). The dataset is
+  `data/regions-carbon-score.json`; refresh both with
+  `python scripts/generate_scorecard.py`.
 
 ## Install
 
