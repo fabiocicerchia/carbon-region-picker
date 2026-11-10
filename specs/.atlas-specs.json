@@ -1,0 +1,732 @@
+{
+ "excluded": {
+  "carbon-region-picker/carbon-region-picker": [
+   {
+    "candidate": "Bundled catalog contents per provider (region-to-zone mapping, intensities, RTTs) as standalone scenarios",
+    "covered_by": "region-ranking.carbon-ordering.cleanest-first",
+    "reason": "DUPLICATE_OF",
+    "source": "carbon_region_picker.py#REGIONS"
+   },
+   {
+    "candidate": "requests imported lazily so bundled mode works without it",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "carbon_region_picker.py#_em_get"
+   },
+   {
+    "candidate": "Electricity Maps URL, auth-token header and 15s timeout",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "carbon_region_picker.py#_em_get"
+   },
+   {
+    "candidate": "Probe hostnames per provider and 2s connect timeout",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "carbon_region_picker.py#ENDPOINTS"
+   },
+   {
+    "candidate": "Live intensities fetched for every zone, including regions later dropped by the cap",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "carbon_region_picker.py#main"
+   },
+   {
+    "candidate": "RuntimeError guard when forecast reaches fetch without a token",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "carbon_region_picker.py#main"
+   },
+   {
+    "candidate": "Live data for a zone not in the catalog leaves the ranking unchanged",
+    "covered_by": "live-grid-data.real-time-intensity.fallback-to-bundled",
+    "reason": "DUPLICATE_OF",
+    "source": "carbon_region_picker.py#rank"
+   },
+   {
+    "candidate": "Defaults (provider aws, near eu) and help text",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "carbon_region_picker.py#build_parser"
+   },
+   {
+    "candidate": "Exit status 0 on a normal ranking",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "carbon_region_picker.py#main"
+   },
+   {
+    "candidate": "Marginal flag checked before the token check",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "carbon_region_picker.py#main"
+   }
+  ],
+  "carbon-region-picker/dockerfile": [
+   {
+    "candidate": "Base image pinned by digest (python:3.14-slim@sha256)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#FROM"
+   },
+   {
+    "candidate": "Build backend and runtime deps installed from hash-pinned lockfiles with --require-hashes and no build isolation",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#RUN"
+   },
+   {
+    "candidate": "Wheel built and installed with --no-deps, temp wheel removed, no pip cache",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#RUN"
+   },
+   {
+    "candidate": "HEALTHCHECK only checks that the interpreter starts",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "Dockerfile#HEALTHCHECK"
+   },
+   {
+    "candidate": "Recommendation to run with --read-only (comment only, not enforced)",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "Dockerfile#USER"
+   },
+   {
+    "candidate": "WORKDIR /app",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#WORKDIR"
+   },
+   {
+    "candidate": "Local environment secret files are never baked into the image",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": ".dockerignore#environment-files"
+   }
+  ],
+  "carbon-region-picker/install": [
+   {
+    "candidate": "Usage comment documenting the curl | bash one-liner URL",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "install.sh#install.sh"
+   },
+   {
+    "candidate": "Shebang selects bash via /usr/bin/env",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "install.sh#install.sh"
+   }
+  ],
+  "carbon-region-picker/makefile": [
+   {
+    "candidate": "make help lists every target with its one-line description",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#help"
+   },
+   {
+    "candidate": "make setup installs the pre-commit hook",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#setup"
+   },
+   {
+    "candidate": "make install installs the package with pip",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#install"
+   },
+   {
+    "candidate": "make dev does an editable install with the dev extras",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#dev"
+   },
+   {
+    "candidate": "make lint runs every pre-commit hook on all files (CLAUDE.md says it runs only 'ruff check .', which is out of date)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#lint"
+   },
+   {
+    "candidate": "make test runs pytest quietly",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#test"
+   },
+   {
+    "candidate": "make build builds the sdist and the wheel",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#build"
+   },
+   {
+    "candidate": "make run prints the CLI help",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#run"
+   },
+   {
+    "candidate": "make format rewrites the sources with ruff format",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#format"
+   },
+   {
+    "candidate": "make analyze type-checks with basedpyright",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#analyze"
+   }
+  ],
+  "docs/stylesheets": [
+   {
+    "candidate": "Translucent blurred header with hairline divider and shadow on scroll",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "docs/stylesheets/extra.css#.md-header"
+   },
+   {
+    "candidate": "Heading weights, letter-spacing and kerning",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset h1"
+   },
+   {
+    "candidate": "Rounded bordered code blocks",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .highlight"
+   },
+   {
+    "candidate": "Tables styled as rounded cards with uppercase headers",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset table:not([class])"
+   },
+   {
+    "candidate": "Pill-shaped buttons with lift-on-hover animation",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .md-button"
+   },
+   {
+    "candidate": "Hero block centred layout and tagline sizing",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .hero"
+   },
+   {
+    "candidate": "Hero title and primary button gradient",
+    "covered_by": "docs.theme.greenops-accent-pair",
+    "reason": "DUPLICATE_OF",
+    "source": "docs/stylesheets/extra.css#.md-typeset .hero h1"
+   },
+   {
+    "candidate": "Feature cards with border, hover lift and accent-tinted border and icons",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .grid.cards > ul > li"
+   },
+   {
+    "candidate": "Sidebar nav title and active link weights",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-nav__title"
+   },
+   {
+    "candidate": "Footer background, divider and muted link colour",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-footer-meta"
+   },
+   {
+    "candidate": "Smooth scrolling for in-page anchors",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#html"
+   }
+  ]
+ },
+ "lifted": {
+  "carbon-region-picker/carbon-region-picker": [],
+  "carbon-region-picker/dockerfile": [
+   {
+    "from_source": ".dockerignore#environment-files",
+    "rule": "distribution.container-image.local-secrets-not-baked-in"
+   },
+   {
+    "from_source": "Dockerfile#USER",
+    "rule": "distribution.container-image.runs-as-non-root"
+   }
+  ],
+  "carbon-region-picker/install": [],
+  "carbon-region-picker/makefile": [],
+  "docs/stylesheets": []
+ },
+ "retired": [
+  "documentation-site.theme-palette.001",
+  "documentation-site.theme-palette.002",
+  "documentation-site.theme-palette.004"
+ ],
+ "scenarios": {
+  "command-line.json-output.001": {
+   "file": "specs/command-line/json-output/json-output.feature",
+   "fingerprint": "33ecc38579f8",
+   "human": false,
+   "rule": "command-line.json-output.region-records",
+   "source": "carbon_region_picker.py#emit",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_json_output_is_valid",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_json_output_is_valid",
+    "tests/test_carbon_region_picker.py#test_gcp_and_azure_region_sets"
+   ]
+  },
+  "command-line.json-output.002": {
+   "file": "specs/command-line/json-output/json-output.feature",
+   "fingerprint": "33ecc38579f8",
+   "human": false,
+   "rule": "command-line.json-output.forecast-wraps-ranking",
+   "source": "carbon_region_picker.py#emit",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "command-line.options-validation.001": {
+   "file": "specs/command-line/options-validation/live-only-options.feature",
+   "fingerprint": "3cb0f6882fc4",
+   "human": false,
+   "rule": "command-line.options-validation.live-only-flags-require-live",
+   "source": "carbon_region_picker.py#main",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_marginal_without_live_rejected",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_marginal_without_live_rejected",
+    "tests/test_carbon_region_picker.py#test_forecast_without_live_rejected"
+   ]
+  },
+  "command-line.table-report.001": {
+   "file": "specs/command-line/table-report/ranking-report.feature",
+   "fingerprint": "d089954e5555",
+   "human": false,
+   "rule": "command-line.table-report.constraint-heading",
+   "source": "carbon_region_picker.py#render",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "command-line.table-report.002": {
+   "file": "specs/command-line/table-report/ranking-report.feature",
+   "fingerprint": "d089954e5555",
+   "human": false,
+   "rule": "region-ranking.clean-grid-marker.below-threshold",
+   "source": "carbon_region_picker.py#render",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_render_mentions_savings_factor",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_render_mentions_savings_factor"
+   ]
+  },
+  "command-line.table-report.003": {
+   "file": "specs/command-line/table-report/ranking-report.feature",
+   "fingerprint": "d089954e5555",
+   "human": false,
+   "rule": "region-ranking.savings-estimate.best-over-worst-factor",
+   "source": "carbon_region_picker.py#render",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_render_mentions_savings_factor",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_render_mentions_savings_factor"
+   ]
+  },
+  "command-line.table-report.004": {
+   "file": "specs/command-line/table-report/ranking-report.feature",
+   "fingerprint": "d089954e5555",
+   "human": false,
+   "rule": "region-ranking.savings-estimate.omitted-without-difference",
+   "source": "carbon_region_picker.py#render",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "distribution.container-image.001": {
+   "file": "specs/distribution/container-image/container-image.feature",
+   "fingerprint": "7bac8ece83cb",
+   "human": false,
+   "rule": "distribution.container-image.runs-cli-with-given-arguments",
+   "source": "Dockerfile#ENTRYPOINT",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "distribution.container-image.002": {
+   "file": "specs/distribution/container-image/container-image.feature",
+   "fingerprint": "b0e998760f14",
+   "human": false,
+   "rule": "distribution.container-image.runs-as-non-root",
+   "source": "Dockerfile#USER",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "distribution.one-line-installer.001": {
+   "file": "specs/distribution/one-line-installer/one-line-installer.feature",
+   "fingerprint": "ccd6e9d74105",
+   "human": false,
+   "rule": "distribution.installer.prefers-pipx-falls-back-to-pip",
+   "source": "install.sh#install.sh",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "distribution.one-line-installer.002": {
+   "file": "specs/distribution/one-line-installer/one-line-installer.feature",
+   "fingerprint": "ccd6e9d74105",
+   "human": false,
+   "rule": "distribution.installer.no-success-claim-on-failure",
+   "source": "install.sh#install.sh",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "documentation-site.theme-palette.003": {
+   "file": "specs/documentation-site/theme-palette/docs-look-and-feel.feature",
+   "fingerprint": "d8424b84d164",
+   "human": false,
+   "rule": "docs.theme.no-network-assets",
+   "source": "docs/stylesheets/extra.css#:root",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "latency.latency-cap.001": {
+   "file": "specs/latency/latency-cap/latency-cap.feature",
+   "fingerprint": "d8dd10c49157",
+   "human": false,
+   "rule": "latency.latency-cap.drop-over-cap",
+   "source": "carbon_region_picker.py#rank",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_latency_constraint_filters",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_latency_constraint_filters"
+   ]
+  },
+  "latency.latency-cap.002": {
+   "file": "specs/latency/latency-cap/latency-cap.feature",
+   "fingerprint": "d8dd10c49157",
+   "human": false,
+   "rule": "latency.latency-cap.zero-means-uncapped",
+   "source": "carbon_region_picker.py#rank",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "latency.live-probing.001": {
+   "file": "specs/latency/live-probing/live-latency-probing.feature",
+   "fingerprint": "d8dd10c49157",
+   "human": false,
+   "rule": "latency.live-probing.measured-replaces-estimate",
+   "source": "carbon_region_picker.py#rank",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_rank_uses_measured_latency_over_bundled",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_rank_uses_measured_latency_over_bundled",
+    "tests/test_carbon_region_picker.py#test_measure_latency_ms_success"
+   ]
+  },
+  "latency.live-probing.002": {
+   "file": "specs/latency/live-probing/live-latency-probing.feature",
+   "fingerprint": "8f32e01e15ca",
+   "human": false,
+   "rule": "latency.live-probing.unmeasured-keeps-estimate",
+   "source": "carbon_region_picker.py#measure_all",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_measure_latency_ms_unreachable",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_measure_latency_ms_unreachable",
+    "tests/test_carbon_region_picker.py#test_measure_all_unknown_provider_is_noop"
+   ]
+  },
+  "live-grid-data.api-credentials.001": {
+   "file": "specs/live-grid-data/api-credentials/em-token.feature",
+   "fingerprint": "3cb0f6882fc4",
+   "human": false,
+   "rule": "live-grid-data.api-credentials.live-requires-token",
+   "source": "carbon_region_picker.py#main",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_missing_token_returns_error",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_missing_token_returns_error"
+   ]
+  },
+  "live-grid-data.api-credentials.002": {
+   "file": "specs/live-grid-data/api-credentials/em-token.feature",
+   "fingerprint": "91aaf26cbc25",
+   "human": false,
+   "rule": "live-grid-data.api-credentials.flag-over-env",
+   "source": "carbon_region_picker.py#resolve_token",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "live-grid-data.cleanest-hour-forecast.001": {
+   "file": "specs/live-grid-data/cleanest-hour-forecast/cleanest-hour.feature",
+   "fingerprint": "3b1459be3594",
+   "human": false,
+   "rule": "live-grid-data.cleanest-hour-forecast.lowest-slot-for-top-region",
+   "source": "carbon_region_picker.py#best_forecast_slot",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_best_forecast_slot_picks_lowest",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_best_forecast_slot_picks_lowest",
+    "tests/test_carbon_region_picker.py#test_render_includes_forecast_note",
+    "tests/test_carbon_region_picker.py#test_fetch_forecast_returns_list"
+   ]
+  },
+  "live-grid-data.cleanest-hour-forecast.002": {
+   "file": "specs/live-grid-data/cleanest-hour-forecast/cleanest-hour.feature",
+   "fingerprint": "c274158a2f63",
+   "human": false,
+   "rule": "live-grid-data.cleanest-hour-forecast.omitted-without-data",
+   "source": "carbon_region_picker.py#fetch_forecast",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_best_forecast_slot_empty",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_best_forecast_slot_empty"
+   ]
+  },
+  "live-grid-data.real-time-intensity.001": {
+   "file": "specs/live-grid-data/real-time-intensity/live-grid-intensity.feature",
+   "fingerprint": "d8dd10c49157",
+   "human": false,
+   "rule": "live-grid-data.real-time-intensity.live-replaces-bundled",
+   "source": "carbon_region_picker.py#rank",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_live_overrides_bundled_values",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_live_overrides_bundled_values"
+   ]
+  },
+  "live-grid-data.real-time-intensity.002": {
+   "file": "specs/live-grid-data/real-time-intensity/live-grid-intensity.feature",
+   "fingerprint": "1983a0efff0b",
+   "human": false,
+   "rule": "live-grid-data.real-time-intensity.fallback-to-bundled",
+   "source": "carbon_region_picker.py#fetch_live",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_live_ignores_unknown_zone",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_live_ignores_unknown_zone"
+   ]
+  },
+  "live-grid-data.real-time-intensity.003": {
+   "file": "specs/live-grid-data/real-time-intensity/live-grid-intensity.feature",
+   "fingerprint": "1983a0efff0b",
+   "human": false,
+   "rule": "live-grid-data.marginal-intensity.rank-by-marginal",
+   "source": "carbon_region_picker.py#fetch_live",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_fetch_live_marginal_hits_marginal_endpoint",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_fetch_live_marginal_hits_marginal_endpoint"
+   ]
+  },
+  "live-grid-data.real-time-intensity.004": {
+   "file": "specs/live-grid-data/real-time-intensity/live-grid-intensity.feature",
+   "fingerprint": "8a4b6a232db6",
+   "human": false,
+   "rule": "live-grid-data.real-time-intensity.unreachable-service-crashes",
+   "source": "carbon_region_picker.py#_em_get",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "region-ranking.carbon-ordering.001": {
+   "file": "specs/region-ranking/carbon-ordering/ranking-regions-by-carbon.feature",
+   "fingerprint": "d8dd10c49157",
+   "human": false,
+   "rule": "region-ranking.carbon-ordering.cleanest-first",
+   "source": "carbon_region_picker.py#rank",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_rank_sorts_by_intensity",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_rank_sorts_by_intensity",
+    "tests/test_carbon_region_picker.py#test_gcp_and_azure_region_sets"
+   ]
+  },
+  "region-ranking.carbon-ordering.002": {
+   "file": "specs/region-ranking/carbon-ordering/ranking-regions-by-carbon.feature",
+   "fingerprint": "2d2b77334b57",
+   "human": false,
+   "rule": "command-line.options-validation.provider-choices",
+   "source": "carbon_region_picker.py#build_parser",
+   "status": "verified",
+   "test": "tests/test_carbon_region_picker.py#test_unknown_provider_rejected",
+   "tests": [
+    "tests/test_carbon_region_picker.py#test_unknown_provider_rejected"
+   ]
+  }
+ },
+ "taxonomy": {
+  "domains": [
+   {
+    "areas": [
+     {
+      "description": "The bundled list of regions per cloud provider, each mapped to its grid zone, yearly-average intensity and estimated round-trip times.",
+      "slug": "provider-catalog",
+      "title": "Provider region catalog"
+     },
+     {
+      "description": "Sorting regions by grid carbon intensity, with live values replacing bundled ones where available.",
+      "slug": "carbon-ordering",
+      "title": "Carbon ordering"
+     },
+     {
+      "description": "Flagging regions whose grid falls below the clean threshold.",
+      "slug": "clean-grid-marker",
+      "title": "Clean-grid marker"
+     },
+     {
+      "description": "Telling the user how many times less carbon the best region emits compared with the worst.",
+      "slug": "savings-estimate",
+      "title": "Savings estimate"
+     }
+    ],
+    "description": "Ordering a cloud provider's regions from cleanest to dirtiest grid under the user's constraints.",
+    "slug": "region-ranking",
+    "title": "Region ranking"
+   },
+   {
+    "areas": [
+     {
+      "description": "Choosing where latency is judged from (EU or US-East) to pick the matching estimates.",
+      "slug": "vantage-points",
+      "title": "Vantage points"
+     },
+     {
+      "description": "Dropping any region whose round-trip time exceeds the user's maximum.",
+      "slug": "latency-cap",
+      "title": "Latency cap"
+     },
+     {
+      "description": "Measuring real TCP connect time to each region's endpoint instead of using bundled estimates, skipping unreachable ones.",
+      "slug": "live-probing",
+      "title": "Live latency probing"
+     }
+    ],
+    "description": "Keeping recommendations within an acceptable network distance of the user.",
+    "slug": "latency",
+    "title": "Latency constraints"
+   },
+   {
+    "areas": [
+     {
+      "description": "Fetching each zone's current carbon intensity and falling back to bundled values for zones with no answer.",
+      "slug": "real-time-intensity",
+      "title": "Real-time intensity"
+     },
+     {
+      "description": "Optionally ranking by the intensity of the next unit of demand rather than the grid average.",
+      "slug": "marginal-intensity",
+      "title": "Marginal intensity"
+     },
+     {
+      "description": "Suggesting the lowest-carbon hour in the next 24 hours for the top-ranked region.",
+      "slug": "cleanest-hour-forecast",
+      "title": "Cleanest-hour forecast"
+     },
+     {
+      "description": "Supplying the Electricity Maps token by flag or environment variable and refusing live mode without one.",
+      "slug": "api-credentials",
+      "title": "API credentials"
+     }
+    ],
+    "description": "Using Electricity Maps for real-time and forecast carbon intensity instead of bundled averages.",
+    "slug": "live-grid-data",
+    "title": "Live grid data"
+   },
+   {
+    "areas": [
+     {
+      "description": "The available flags, their defaults and choices, and usage errors for invalid combinations.",
+      "slug": "options-validation",
+      "title": "Options and validation"
+     },
+     {
+      "description": "The human-readable Markdown ranking with constraint heading and footnotes.",
+      "slug": "table-report",
+      "title": "Table report"
+     },
+     {
+      "description": "Machine-readable ranking, including the forecast slot when requested.",
+      "slug": "json-output",
+      "title": "JSON output"
+     }
+    ],
+    "description": "How users invoke the tool and receive its results.",
+    "slug": "command-line",
+    "title": "Command-line experience"
+   },
+   {
+    "areas": [
+     {
+      "description": "A shell script that installs the tool from source via pipx, or pip as fallback.",
+      "slug": "one-line-installer",
+      "title": "One-line installer"
+     },
+     {
+      "description": "A hardened, non-root, hash-pinned image that runs the CLI without a local Python.",
+      "slug": "container-image",
+      "title": "Container image"
+     }
+    ],
+    "description": "Getting the tool onto a user's machine or into a container.",
+    "slug": "distribution",
+    "title": "Installation and distribution"
+   },
+   {
+    "areas": [
+     {
+      "description": "Installing the package, dev dependencies and the pre-commit hook.",
+      "slug": "dev-setup",
+      "title": "Development setup"
+     },
+     {
+      "description": "Running tests, linting, formatting and type checks.",
+      "slug": "quality-gates",
+      "title": "Quality gates"
+     },
+     {
+      "description": "Building source and wheel distributions and running the CLI locally.",
+      "slug": "packaging",
+      "title": "Packaging"
+     }
+    ],
+    "description": "Tasks contributors use to build, check and run the project.",
+    "slug": "developer-tooling",
+    "title": "Developer tooling"
+   },
+   {
+    "areas": [
+     {
+      "description": "The accent colours and typography shared by the docs and splash page.",
+      "slug": "theme-palette",
+      "title": "Theme and palette"
+     },
+     {
+      "description": "Styling for hero, buttons, feature cards and other docs elements, with no network-loaded assets.",
+      "slug": "page-components",
+      "title": "Page components"
+     }
+    ],
+    "description": "The look and feel of the project's published documentation.",
+    "slug": "documentation-site",
+    "title": "Documentation site"
+   }
+  ]
+ }
+}
