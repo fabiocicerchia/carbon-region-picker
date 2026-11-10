@@ -3,7 +3,7 @@
 
   python scripts/generate_scorecard.py
 
-Joins data/regions-map.json (provider -> region -> country) with Ember's yearly
+Joins data/regions-map.yml (provider -> region -> country) with Ember's yearly
 grid emissions intensity, latest year per country, and writes data/regions-carbon-score.json
 and docs/scorecard.md. Standard library only, like the picker itself.
 """
@@ -18,13 +18,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 EMBER_CSV = "https://files.ember-energy.org/public-downloads/generation/outputs/release_generation_yearly_global.csv"
 # One row per area, year and source; the all-sources row carries the grid's intensity.
 TOTAL_SOURCE = "Total generation"
 INTENSITY = "Emissions intensity (gCO2e/kWh)"
 ROOT = Path(__file__).resolve().parent.parent
-REGIONS_MAP = ROOT / "data" / "regions-map.json"
-ISO2_NAMES = ROOT / "data" / "iso2-country-map.json"
+REGIONS_MAP = ROOT / "data" / "regions-map.yml"
+ISO2_NAMES = ROOT / "data" / "iso2-country-map.yml"
 SCORE_FILE = ROOT / "data" / "regions-carbon-score.json"
 SCORECARD_MD = ROOT / "docs" / "scorecard.md"
 
@@ -164,8 +166,8 @@ def render_markdown(scores: dict[str, Any]) -> str:
         "",
         f"- Source: {source['name']}, [{source['metric']}]({source['dataset_url']}),"
         f" latest year per country (newest in the dataset: {source['latest_year_in_dataset']}).",
-        "- Mapping: `data/regions-map.json`, provider region to ISO 3166-1 alpha-2 or an Ember area name;"
-        " `data/iso2-country-map.json` translates the codes Ember spells out.",
+        "- Mapping: `data/regions-map.yml`, provider region to ISO 3166-1 alpha-2 or an Ember area name;"
+        " `data/iso2-country-map.yml` translates the codes Ember spells out.",
         "",
     ]
     return "\n".join(lines)
@@ -173,8 +175,8 @@ def render_markdown(scores: dict[str, Any]) -> str:
 
 def main() -> int:
     """Download Ember, rate every region, write the JSON and the Markdown page."""
-    region_map: dict[str, dict[str, str]] = json.loads(REGIONS_MAP.read_text(encoding="utf-8"))
-    iso2_names: dict[str, str] = json.loads(ISO2_NAMES.read_text(encoding="utf-8"))
+    region_map: dict[str, dict[str, str]] = yaml.safe_load(REGIONS_MAP.read_text(encoding="utf-8"))
+    iso2_names: dict[str, str] = yaml.safe_load(ISO2_NAMES.read_text(encoding="utf-8"))
     with urllib.request.urlopen(EMBER_CSV, timeout=300) as response:
         areas, years = latest_intensities(csv.DictReader(io.TextIOWrapper(response, encoding="utf-8")))
     scores = build_scores(region_map, areas, years, iso2_names, datetime.now(timezone.utc))

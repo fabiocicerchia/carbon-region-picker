@@ -303,4 +303,4 @@ use it to compare providers and regions, not to schedule an hour.
 ## Method
 
 - Source: Ember, [Emissions intensity (gCO2e/kWh), total generation](https://files.ember-energy.org/public-downloads/generation/outputs/release_generation_yearly_global.csv), latest year per country (newest in the dataset: 2025).
-- Mapping: `data/regions-map.json`, provider region to ISO 3166-1 alpha-2 or an Ember area name; `data/iso2-country-map.json` translates the codes Ember spells out.
+- Mapping: `data/regions-map.yml`, provider region to ISO 3166-1 alpha-2 or an Ember area name; `data/iso2-country-map.yml` translates the codes Ember spells out.
