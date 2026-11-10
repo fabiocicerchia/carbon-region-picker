@@ -4,7 +4,7 @@ Feature: Suggesting the cleanest hour to run
 
   Background:
     Given the operator has a valid Electricity Maps token
-    Andasks for a live ranking with the cleanest-hour forecast
+    And asks for a live ranking with the cleanest-hour forecast
 
   @id:live-grid-data.cleanest-hour-forecast.001 @rule:live-grid-data.cleanest-hour-forecast.lowest-slot-for-top-region @verified @source:carbon_region_picker.py#best_forecast_slot @test:tests/test_carbon_region_picker.py#test_best_forecast_slot_picks_lowest @test:tests/test_carbon_region_picker.py#test_render_includes_forecast_note @test:tests/test_carbon_region_picker.py#test_fetch_forecast_returns_list
   Scenario: The lowest-intensity forecast hour of the top region is suggested

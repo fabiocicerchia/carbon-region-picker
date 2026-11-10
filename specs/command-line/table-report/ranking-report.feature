@@ -4,7 +4,7 @@ Feature: Reading the ranking report
 
   Background:
     Given the bundled yearly-average grid intensities are in use
-    Andthe output format is the default table
+    And the output format is the default table
 
   @id:command-line.table-report.001 @rule:command-line.table-report.constraint-heading @inferred @source:carbon_region_picker.py#render
   Scenario Outline: The heading states the latency constraint when one is set

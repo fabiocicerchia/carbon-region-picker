@@ -3,7 +3,7 @@ Feature: Probing real latency to regions
   Serves engineers who want the cap judged on their actual network, by timing a TCP connect to each region instead of trusting estimates.
 
   Background:
-    Giventhe operator asks for measured latency
+    Given the operator asks for measured latency
 
   @id:latency.live-probing.001 @rule:latency.live-probing.measured-replaces-estimate @verified @source:carbon_region_picker.py#rank @test:tests/test_carbon_region_picker.py#test_rank_uses_measured_latency_over_bundled @test:tests/test_carbon_region_picker.py#test_measure_latency_ms_success
   Scenario: A measured latency replaces the estimate and is what the cap is judged on

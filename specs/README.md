@@ -19,7 +19,7 @@ Getting the tool onto a user's machine or into a container.
 ## Documentation site
 The look and feel of the project's published documentation.
 
-- **Theme and palette**: [Presenting the documentation in the project's own palette](documentation-site/theme-palette/docs-look-and-feel.feature) (4)
+- **Theme and palette**: [Presenting the documentation in the project's own palette](documentation-site/theme-palette/docs-look-and-feel.feature) (1)
 
 ## Latency constraints
 Keeping recommendations within an acceptable network distance of the user.
