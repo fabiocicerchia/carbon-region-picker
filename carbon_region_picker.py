@@ -32,8 +32,8 @@ CLEAN_GRID_GCO2_KWH = 100
 # zone code, use:
 #   - Zone-code registry (valid IDs the live API accepts):
 #     https://github.com/electricitymaps/electricitymaps-contrib/tree/master/config/zones
-#   - Country-level yearly averages (free, versioned CSV):
-#     https://files.ember-energy.org/public-downloads/yearly_full_release_long_format.csv
+#   - Country-level yearly averages (free CSV; data/regions-carbon-score.json is built from it):
+#     https://files.ember-energy.org/public-downloads/generation/outputs/release_generation_yearly_global.csv
 #   - Sub-national zones Ember doesn't cover (US balancing authorities, CA-QC,
 #     IN-WE, AU-NSW): https://app.electricitymaps.com/zone/<ZONE> (no static
 #     dataset at this granularity without a paid API token — check by hand).

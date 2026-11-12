@@ -1,0 +1,3 @@
+[default.extend-words]
+# Hetzner Helsinki region (hel1), not a typo.
+hel = "hel"

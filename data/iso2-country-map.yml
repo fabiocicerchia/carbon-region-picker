@@ -1,0 +1,61 @@
+# ISO2 country code to Ember Area name mapping.
+#
+# Two hazards live in this file, and both fail silently:
+#
+#   * The value has to be Ember's Area string *exactly*.
+#     resolve_country_to_entity() falls through when it is not, and every
+#     region in that country is written with a null intensity and rating "U" —
+#     which reads as "Ember has no series for that grid" rather than "this file
+#     has the wrong name". "United States" cost 38 regions that way.
+#   * Quote any key or value YAML 1.1 would read as a boolean — NO, N, Y, YES,
+#     ON, OFF and their case variants. An unquoted NO is the boolean false, so
+#     the key never matches the string "NO" the region map supplies.
+US: United States
+GB: United Kingdom
+IE: Ireland
+DE: Germany
+NL: Netherlands
+FR: France
+PL: Poland
+CA: Canada
+SG: Singapore
+IN: India
+FI: Finland
+AU: Australia
+JP: Japan
+KR: South Korea
+AE: United Arab Emirates
+ZA: South Africa
+BR: Brazil
+ES: Spain
+IT: Italy
+SE: Sweden
+"NO": Norway
+CH: Switzerland
+BE: Belgium
+AT: Austria
+PT: Portugal
+DK: Denmark
+CZ: Czechia
+IL: Israel
+MX: Mexico
+
+# Grids with cloud regions but no entry here, so every one of them scored "U".
+# These names are verified: they resolve against the Ember yearly release.
+HK: Hong Kong (SAR of China)
+TW: Taiwan (China)
+ID: Indonesia
+MY: Malaysia
+NZ: New Zealand
+TH: Thailand
+CL: Chile
+QA: Qatar
+BH: Bahrain
+SA: Saudi Arabia
+
+# Same gap, but these three are inferred from the convention above rather than
+# confirmed against Ember — no downstream consumer has looked them up yet. A
+# wrong name costs nothing: it fails exactly as the missing entry does today.
+CN: China
+CO: Colombia
+RS: Serbia
